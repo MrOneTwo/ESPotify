@@ -1,0 +1,38 @@
+menu "Example Configuration"
+
+    config ESP_WIFI_SSID
+        string "WiFi SSID"
+        default "Collective Confusion"
+        help
+            SSID (network name) for the example to connect to.
+
+    config ESP_WIFI_PASSWORD
+        string "WiFi Password"
+        default "please provide me with the wifi"
+        help
+            WiFi password (WPA or WPA2) for the example to use.
+
+    config ESP_MAXIMUM_RETRY
+        int "Maximum retry"
+        default 5
+        help
+            Set the Maximum retry to avoid station reconnecting to the AP unlimited when the AP is really inexistent.
+
+    config SPOTIFY_CLIENT_ID
+        string "Spotify client ID"
+        default "EMPTY"
+        help
+            Spotify's client ID
+
+    config SPOTIFY_CLIENT_SECRET
+        string "Spotify client secret"
+        default "EMPTY"
+        help
+            Spotify's client secret
+
+    config SPOTIFY_REFRESH_TOKEN
+        string "Spotify refresh token"
+        default "EMPTY"
+        help
+            Spotify's refresh token
+endmenu

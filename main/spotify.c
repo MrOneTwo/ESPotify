@@ -1,0 +1,230 @@
+#include "spotify.h"
+#include "shared.h"
+
+#include "esp_http_client.h"
+#include "esp_log.h"
+#include "cJSON.h"
+
+#include <string.h>
+
+// This struct is available through extern in spotify.h.
+spotify_t spotify;
+spotify_playback_t spotify_playback;
+
+static esp_err_t spotify_http_event_handler(esp_http_client_event_t *evt);
+
+typedef struct context_t
+{
+  esp_http_client_handle_t client;
+  bool client_inited;
+} context_t;
+
+context_t context = {};
+
+void spotify_init(spotify_t* spotify)
+{
+  spotify->fresh = false;
+  memset(spotify->client_id, 0, sizeof(spotify->client_id));
+  memset(spotify->client_secret, 0, sizeof(spotify->client_secret));
+  memset(spotify->refresh_token, 0, sizeof(spotify->refresh_token));
+  memset(spotify->access_token, 0, sizeof(spotify->access_token));
+
+  snprintf(spotify->client_id, sizeof(spotify->client_id), "%s", CONFIG_SPOTIFY_CLIENT_ID);
+  snprintf(spotify->client_secret, sizeof(spotify->client_secret), "%s", CONFIG_SPOTIFY_CLIENT_SECRET);
+  snprintf(spotify->refresh_token, sizeof(spotify->refresh_token), "%s", CONFIG_SPOTIFY_REFRESH_TOKEN);
+}
+
+void spotify_refresh_access_token(spotify_t* spotify)
+{
+  const char* spotify_url = "https://accounts.spotify.com/api/token";
+  esp_http_client_config_t config = {
+    .url = spotify_url,
+    .transport_type = HTTP_TRANSPORT_OVER_SSL,
+    .event_handler = spotify_http_event_handler,
+  };
+  esp_http_client_handle_t client = esp_http_client_init(&config);
+  esp_http_client_set_method(client, HTTP_METHOD_POST);
+  char data[1024];
+  snprintf(data, 1024, "client_id=%s&client_secret=%s&refresh_token=%s&grant_type=refresh_token",
+           spotify->client_id,
+           spotify->client_secret,
+           spotify->refresh_token);
+  esp_http_client_set_post_field(client, data, strlen(data));
+
+  esp_err_t err = esp_http_client_perform(client);
+
+  if (err == ESP_OK) {
+   ESP_LOGI(TAG, "Status = %d, content_length = %d",
+            esp_http_client_get_status_code(client),
+            esp_http_client_get_content_length(client));
+  }
+  esp_http_client_cleanup(client);
+}
+
+void spotify_query(spotify_t* spotify)
+{
+  char buf[280];
+
+  if (context.client_inited == false)
+  {
+    const char* spotify_url = "https://api.spotify.com/v1/me/player";
+    esp_http_client_config_t config = {
+      .url = spotify_url,
+      .transport_type = HTTP_TRANSPORT_OVER_SSL,
+      .event_handler = spotify_http_event_handler,
+    };
+    context.client = esp_http_client_init(&config);
+
+    snprintf(buf, 280, "Bearer %s", spotify->access_token);
+    esp_http_client_set_header(context.client, "Authorization", buf);
+    esp_http_client_set_method(context.client, HTTP_METHOD_GET);
+
+    context.client_inited = true;
+  }
+
+  esp_err_t err = esp_http_client_perform(context.client);
+
+  if (err == ESP_OK) {
+    ESP_LOGI(TAG, "Status = %d, content_length = %d",
+            esp_http_client_get_status_code(context.client),
+            esp_http_client_get_content_length(context.client));
+  }
+}
+
+static esp_err_t spotify_http_event_handler(esp_http_client_event_t *evt)
+{
+  #define RESPONSE_BUF_SIZE (1024 * 5)
+  // This buffer is local to this scope but the data is persistent.
+  static char response_buf[RESPONSE_BUF_SIZE] = {};
+  static uint32_t response_buf_tail = 0;
+
+  switch(evt->event_id) {
+    case HTTP_EVENT_ERROR:
+      ESP_LOGI(TAG, "HTTP_EVENT_ERROR");
+      break;
+    case HTTP_EVENT_ON_CONNECTED:
+      ESP_LOGI(TAG, "HTTP_EVENT_ON_CONNECTED");
+      break;
+    case HTTP_EVENT_HEADER_SENT:
+      ESP_LOGI(TAG, "HTTP_EVENT_HEADER_SENT");
+      break;
+    case HTTP_EVENT_ON_HEADER:
+      ESP_LOGI(TAG, "HTTP_EVENT_ON_HEADER");
+      printf("%.*s", evt->data_len, (char*)evt->data);
+      break;
+    case HTTP_EVENT_ON_DATA:
+      ESP_LOGI(TAG, "HTTP_EVENT_ON_DATA, len=%d", evt->data_len);
+      // Collect the data into a buffer.
+      memcpy(&response_buf[response_buf_tail], evt->data, evt->data_len);
+      response_buf_tail += evt->data_len;
+
+      if (response_buf_tail >= RESPONSE_BUF_SIZE)
+      {
+        ESP_LOGI(TAG, "Not enough space in the response_buf... that's a yikes!");
+      }
+
+      // if (!esp_http_client_is_chunked_response(evt->client)) {
+          // printf("%.*s", evt->data_len, (char*)evt->data);
+      // }
+      break;
+    case HTTP_EVENT_ON_FINISH:
+      ;
+      // Check if there is data present in the response_buf.
+      if (response_buf_tail)
+      {
+        cJSON* response_json = cJSON_Parse(response_buf);
+
+        cJSON* access_token = cJSON_GetObjectItem(response_json, "access_token");
+        cJSON* error = cJSON_GetObjectItem(response_json, "error");
+        if (error != NULL)
+        {
+          cJSON* error_message = cJSON_GetObjectItem(response_json, "message");
+          if (error_message != NULL)
+          {
+            char* error_message_value = cJSON_GetStringValue(error_message);
+            if (strcmp(error_message_value, "Only valid bearer authentication supported") == 0)
+            {
+              ESP_LOGE(TAG, "The access token is incorrect!");
+              spotify.fresh = false;
+            }
+            if (strcmp(error_message_value, "The access token expired") == 0)
+            {
+              ESP_LOGE(TAG, "The access token expired!");
+              spotify.fresh = false;
+            }
+          }
+        }
+
+        if (access_token != NULL)
+        {
+          char* access_token_value = cJSON_GetStringValue(access_token);
+          if (access_token_value)
+          {
+            strncpy(spotify.access_token, access_token_value, strlen(access_token_value));
+            spotify.fresh = true;
+          }
+        }
+
+        cJSON* is_playing = NULL;
+
+        is_playing = cJSON_GetObjectItem(response_json, "is_playing");
+        if (is_playing)
+        {
+          if (cJSON_IsBool(is_playing))
+          {
+            if (cJSON_IsTrue(is_playing))
+            {
+              spotify_playback.is_playing = true;
+            }
+            else
+            {
+              spotify_playback.is_playing = false;
+            }
+          }
+        }
+
+        printf("\n%.*s\n", RESPONSE_BUF_SIZE, response_buf);
+        memset(response_buf, 0, RESPONSE_BUF_SIZE);
+        response_buf_tail = 0;
+
+        cJSON* item = cJSON_GetObjectItem(response_json, "item");
+        cJSON* artists = cJSON_GetObjectItem(item, "artists");
+        artists = cJSON_GetArrayItem(artists, 0);
+        cJSON* artist_name = cJSON_GetObjectItem(artists, "name");
+        cJSON* song_title = cJSON_GetObjectItem(item, "name");
+        cJSON* song_id = cJSON_GetObjectItem(item, "id");
+
+        // NOTE(michalc): the size of spotify_playback.artist buffer is 64.
+        if (cJSON_GetStringValue(artist_name))
+        {
+          if (strlen(cJSON_GetStringValue(artist_name)) < 64)
+          {
+            strcpy(spotify_playback.artist, cJSON_GetStringValue(artist_name));
+          }
+        }
+
+        if (cJSON_GetStringValue(song_title))
+        {
+          if (strlen(cJSON_GetStringValue(song_title)) < 64)
+          {
+            strcpy(spotify_playback.song_title, cJSON_GetStringValue(song_title));
+          }
+        }
+
+        if (cJSON_GetStringValue(song_id))
+        {
+          if (strlen(cJSON_GetStringValue(song_id)) < 64)
+          {
+            strcpy(spotify_playback.song_id, cJSON_GetStringValue(song_id));
+          }
+        }
+
+      }
+      ESP_LOGI(TAG, "HTTP_EVENT_ON_FINISH");
+      break;
+    case HTTP_EVENT_DISCONNECTED:
+      ESP_LOGI(TAG, "HTTP_EVENT_DISCONNECTED");
+      break;
+  }
+  return ESP_OK;
+}
