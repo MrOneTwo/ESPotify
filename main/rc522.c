@@ -580,9 +580,6 @@ void rc522_get_picc_data(uint8_t* buffer)
     printf("response_data is NULL\n");
   }
 
-
-  // Clear the MFCrypto1On bit.
-  // rc522_clear_bitmask(RC522_REG_STATUS_2, 0x08);
   return;
 }
 
