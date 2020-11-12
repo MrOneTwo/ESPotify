@@ -317,6 +317,9 @@ uint8_t rc522_picc_request(void)
 // TODO(michalc): return value should reflect success which depends on the cascade_level.
 status_e rc522_anti_collision(uint8_t cascade_level)
 {
+  assert(cascade_level > 0);
+  assert(cascade_level <= 3);
+
   uint8_t* response = NULL;
   uint8_t res_n;
   uint32_t res_n_bits = 0;
