@@ -17,6 +17,24 @@ The `idf.py menuconfig` step is there so you can set Spotify's client ID, client
 and refresh token. I'd like the ESP32 to be able to fetch the refresh token by itself
 but I'm not there yet.
 
+If you want to skip using `idf.py` you can first install the toolchain:
+
+```sh
+cd esp-idf
+pip3 install -r requirements.txt
+./install.sh
+```
+
+And then build the project:
+
+```sh
+export IDF_PATH=path/to/esp-idf
+source export.sh
+mkdir build && cd build
+cmake .. -G Ninja
+ninja
+```
+
 ## Features/TODO
 
 ### RFID
