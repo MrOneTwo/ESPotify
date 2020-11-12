@@ -56,22 +56,24 @@ esp_err_t rc522_init(spi_device_handle_t* spi)
   return ESP_OK;
 }
 
-esp_err_t rc522_write_n(uint8_t addr, uint8_t n, uint8_t *data)
+esp_err_t rc522_write_n(uint8_t addr, uint8_t data_size, uint8_t *data)
 {
-  // The address gets concatenated with the data here.
-  uint8_t* buffer = (uint8_t*) malloc(n + 1);
+  // The address gets concatenated with the data here. This buffer gets freed in the same scope
+  // so a little malloc won't hurt... famous last words.
+  uint8_t* buffer = (uint8_t*) malloc(data_size + 1);
+  // TODO(michalc): understand why this is needed.
   buffer[0] = (addr << 1) & 0x7E;
 
   // Copy data from data to buffer, moved by one byte to make space for the address.
-  for (uint8_t i = 1; i <= n; i++)
+  for (uint8_t i = 1; i <= data_size; i++)
   {
-    buffer[i] = data[i-1];
+    buffer[i] = data[i - 1];
   }
 
-  spi_transaction_t t;
-  memset(&t, 0, sizeof(t));
+  spi_transaction_t t = {};
 
-  t.length = 8 * (n + 1);
+  // Yes, the length is in bits.
+  t.length = 8 * (data_size + 1);
   t.tx_buffer = buffer;
 
   esp_err_t ret = spi_device_transmit(*rc522_spi, &t);
@@ -270,6 +272,7 @@ uint8_t* rc522_picc_write(uint8_t cmd,
         *response_size_bytes = nn;
         *response_size_bits = nn * 8U + last_bits;
 
+        // TODO(michalc): I don't like mallocing in this function.
         result = (uint8_t*)malloc(*response_size_bytes);
 
         for(i = 0; i < *response_size_bytes; i++)

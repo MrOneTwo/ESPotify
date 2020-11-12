@@ -80,7 +80,7 @@ typedef struct {
 
 esp_err_t rc522_init(spi_device_handle_t* spi);
 
-esp_err_t rc522_write_n(uint8_t addr, uint8_t n, uint8_t *data);
+esp_err_t rc522_write_n(uint8_t addr, uint8_t data_size, uint8_t *data);
 esp_err_t rc522_write(uint8_t addr , uint8_t val);
 uint8_t* rc522_read_n(uint8_t addr, uint8_t n) ;
 uint8_t rc522_read(uint8_t addr);
