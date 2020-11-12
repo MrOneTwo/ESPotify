@@ -190,7 +190,7 @@ uint8_t* rc522_calculate_crc(uint8_t *data, uint8_t data_size, uint8_t* crc_buf)
   return crc_buf;
 }
 
-uint8_t* rc522_picc_write(uint8_t cmd,
+uint8_t* rc522_picc_write(rc522_commands_e cmd,
                           uint8_t* data, uint8_t data_size,
                           uint8_t* response_size_bytes, uint32_t* response_size_bits)
 {

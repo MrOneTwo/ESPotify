@@ -9,17 +9,6 @@
 
 #include "driver/spi_master.h"
 
-#define RC522_CMD_IDLE          (0b0000)
-#define RC522_CMD_MEM           (0b0001)
-#define RC522_CMD_GEN_RANDOM_ID (0b0010)
-#define RC522_CMD_CALC_CRC      (0b0011)
-#define RC522_CMD_TRANSMIT      (0b0100)
-#define RC522_CMD_NO_CMD_CHANGE (0b0111)
-#define RC522_CMD_RECEIVE       (0b1000)
-#define RC522_CMD_TRANSCEIVE    (0b1100)
-#define RC522_CMD_MF_AUTH       (0b1110)
-#define RC522_CMD_SOFT_RESET    (0b1111)
-
 #define RC522_REG_COMMAND         0x01
 #define RC522_REG_COM_IRQ_EN_DI   0x02
 #define RC522_REG_DIV_IRQ_EN_DI   0x03
@@ -68,8 +57,22 @@
 
 #define PICC_CASCADE_TAG          0x88
 
+typedef enum {
+  RC522_CMD_IDLE          = (0b0000),
+  RC522_CMD_MEM           = (0b0001),
+  RC522_CMD_GEN_RANDOM_ID = (0b0010),
+  RC522_CMD_CALC_CRC      = (0b0011),
+  RC522_CMD_TRANSMIT      = (0b0100),
+  RC522_CMD_NO_CMD_CHANGE = (0b0111),
+  RC522_CMD_RECEIVE       = (0b1000),
+  RC522_CMD_TRANSCEIVE    = (0b1100),
+  RC522_CMD_MF_AUTH       = (0b1110),
+  RC522_CMD_SOFT_RESET    = (0b1111),
+} rc522_commands_e;
+
 typedef void(*rc522_tag_callback_t)(uint8_t*);
 
+// TODO(michalc): throw this structure out.
 typedef struct {
     int miso_io;
     int mosi_io;
@@ -101,7 +104,7 @@ uint8_t* rc522_calculate_crc(uint8_t *data, uint8_t data_size, uint8_t* crc_buf)
  * This function returns both: response's size in bytes and in bits. That's because it's possible
  * to receive a partial byte. It's important during anti collision stage.
  */
-uint8_t* rc522_picc_write(uint8_t cmd,
+uint8_t* rc522_picc_write(rc522_commands_e cmd,
                           uint8_t* data, uint8_t data_size,
                           uint8_t* response_size_bytes, uint32_t* response_size_bits);
 
