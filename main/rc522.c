@@ -499,7 +499,6 @@ uint8_t* rc522_get_picc_id()
 
     if (status == SUCCESS)
     {
-      printf("GOT A FULL UID!\n");
       uint8_t key[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
       rc522_authenticate(PICC_CMD_MF_AUTH_KEY_A, 0x1, key);
 
@@ -567,17 +566,12 @@ void rc522_get_picc_data(uint8_t* buffer)
   response_data = rc522_picc_write(RC522_CMD_TRANSCEIVE, picc_cmd_buffer, 4, &response_data_n, &response_data_n_bits);
   if (response_data)
   {
-    printf("response_data is OK %d %x\n", response_data_n_bits, response_data[0]);
     if (response_data_n == 18)
     {
       // Copy the actual data bytes but not the CRC bytes.
       memcpy(buffer, response_data, response_data_n - 2);
     }
     free(response_data);
-  }
-  else
-  {
-    printf("response_data is NULL\n");
   }
 
   return;
