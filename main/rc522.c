@@ -489,7 +489,8 @@ uint8_t* rc522_get_picc_id()
   // move it close to reader again.
   // If you use WUPA you'll be able to wake up the PICC every time. That means the entire process
   // below will succeed every time.
-  uint8_t picc_present = rc522_picc_reqa_or_wupa(PICC_CMD_REQA);
+  uint8_t picc_present = rc522_picc_reqa_or_wupa(PICC_CMD_WUPA);
+  static uint8_t sector = 0;
 
   if (picc_present)
   {
@@ -500,28 +501,40 @@ uint8_t* rc522_get_picc_id()
     if (status == SUCCESS)
     {
       uint8_t key[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
-      rc522_authenticate(PICC_CMD_MF_AUTH_KEY_A, 0x1, key);
+      // Authenticate sector access.
+      rc522_authenticate(PICC_CMD_MF_AUTH_KEY_A, 0x2, key);
 
-      uint8_t data[16] = {0x1, 0x2};
-      rc522_read_picc_data(data);
-      printf("DATA: %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x\n",
-        data[0],
-        data[1],
-        data[2],
-        data[3],
-        data[4],
-        data[5],
-        data[6],
-        data[7],
-        data[8],
-        data[9],
-        data[10],
-        data[11],
-        data[12],
-        data[13],
-        data[14],
-        data[15]
-      );
+      uint8_t data[18] = {0x4, 0x3, 0x2, 0x1};
+      // if (temp++ % 2)
+      // {
+      //   printf("WRITING!\n");
+      //   rc522_write_picc_data(0x0, data);
+      // }
+      // else
+      {
+        const uint8_t block = 0x3 + 0x4 * sector;
+        printf("READING %d\n", block);
+        rc522_read_picc_data(block, data);
+        if (++sector > 15) sector = 0;
+        printf("DATA: %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x\n",
+          data[0],
+          data[1],
+          data[2],
+          data[3],
+          data[4],
+          data[5],
+          data[6],
+          data[7],
+          data[8],
+          data[9],
+          data[10],
+          data[11],
+          data[12],
+          data[13],
+          data[14],
+          data[15]
+        );
+      }
     }
     else
     {
@@ -549,7 +562,7 @@ uint8_t* rc522_get_picc_id()
   return NULL;
 }
 
-void rc522_read_picc_data(uint8_t* buffer)
+void rc522_read_picc_data(uint8_t block_address, uint8_t buffer[16])
 {
   uint8_t* response_data = NULL;
   uint8_t response_data_n;
@@ -558,7 +571,7 @@ void rc522_read_picc_data(uint8_t* buffer)
   // At least 18 bytes because it's data + CRC_A.
   uint8_t picc_cmd_buffer[18];
   picc_cmd_buffer[0] = PICC_CMD_MF_READ;
-  picc_cmd_buffer[1] = 0x0;  // block address.
+  picc_cmd_buffer[1] = block_address;
   // Calculate the CRC on the RC522 side.
   (void)rc522_calculate_crc(picc_cmd_buffer, 2, &picc_cmd_buffer[2]);
 
@@ -571,6 +584,39 @@ void rc522_read_picc_data(uint8_t* buffer)
       // Copy the actual data bytes but not the CRC bytes.
       memcpy(buffer, response_data, response_data_n - 2);
     }
+    free(response_data);
+  }
+
+  return;
+}
+
+void rc522_write_picc_data(uint8_t block_address, uint8_t buffer[18])
+{
+  uint8_t* response_data = NULL;
+  uint8_t response_data_n;
+  uint32_t response_data_n_bits;
+
+  uint8_t picc_cmd_buffer[4];
+  picc_cmd_buffer[0] = PICC_CMD_MF_WRITE;
+  picc_cmd_buffer[1] = block_address;  // block address.
+  // Calculate the CRC on the RC522 side.
+  (void)rc522_calculate_crc(picc_cmd_buffer, 2, &picc_cmd_buffer[2]);
+
+  // Send the command to PICC.
+  response_data = rc522_picc_write(RC522_CMD_TRANSCEIVE, picc_cmd_buffer, 4, &response_data_n, &response_data_n_bits);
+  // Here you can get a response of 12 bits and I think that's a 'fuck off' response.
+  printf("--------   %d\n", response_data_n_bits);
+  if (response_data)
+  {
+    free(response_data);
+  }
+
+  // We always write 16 bytes. No other way to do a write.
+  (void)rc522_calculate_crc(buffer, 16, &picc_cmd_buffer[16]);
+  response_data = rc522_picc_write(RC522_CMD_TRANSCEIVE, buffer, 16, &response_data_n, &response_data_n_bits);
+  printf("--------   %d\n", response_data_n_bits);
+  if (response_data)
+  {
     free(response_data);
   }
 
@@ -605,7 +651,6 @@ void rc522_authenticate(uint8_t cmd,  ///< PICC_CMD_MF_AUTH_KEY_A or PICC_CMD_MF
 {
   uint8_t response_data_size;
   uint32_t response_data_size_bits;
-  uint8_t irq_wait = 0x10; // IdleIRq
 
   uint8_t picc_cmd_buffer[12];
   picc_cmd_buffer[0] = cmd;

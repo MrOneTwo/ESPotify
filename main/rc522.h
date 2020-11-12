@@ -144,12 +144,17 @@ status_e rc522_anti_collision(uint8_t cascade_level);
  */
 uint8_t* rc522_get_picc_id();
 
-void rc522_read_picc_data(uint8_t* buffer);
+void rc522_read_picc_data(uint8_t block_adress, uint8_t buffer[16]);
+void rc522_write_picc_data(uint8_t block_address, uint8_t buffer[18]);
 
 esp_err_t rc522_start();
 esp_err_t rc522_resume();
 esp_err_t rc522_pause();
 
+/*
+ * Authenticate a sector access. A sector can be protected with a key A or key B.
+ * A proper key needs to be used. Default factory key is {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}.
+ */
 void rc522_authenticate(uint8_t cmd, uint8_t block_address, uint8_t key[MF_KEY_SIZE]);
 
 #endif // RC522_H
