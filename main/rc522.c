@@ -365,14 +365,14 @@ status_e rc522_anti_collision(uint8_t cascade_level)
 
   // 2. Send the ANTI COLLISION request.
 
-  // Sets StartSend bit to 0.
+  // Sets StartSend bit to 0, all bits are valid.
   rc522_write(RC522_REG_BIT_FRAMING, 0x00);
 
   response = rc522_picc_write(RC522_CMD_TRANSCEIVE, anticollision, anticollision_size, &res_n, &res_n_bits);
 
   if (response == NULL)
   {
-    // TODO(michalc): what now...?
+    return FAILURE;
   }
 
   // 3. Handle the ANTI COLLISION request response.
@@ -413,25 +413,31 @@ status_e rc522_anti_collision(uint8_t cascade_level)
   {
     anticollision[1] = 0x20 + 0x50;
     memcpy(&anticollision[2], response, 5);
+    // BCC and the CRC is transmitted only if we know all the UID bits of the current cascade level.
     anticollision[6] = anticollision[2] ^ anticollision[3] ^ anticollision[4] ^ anticollision[5];
     anticollision_size = 7;
+    (void)rc522_calculate_crc(anticollision, 7, &anticollision[7]);
+    anticollision_size = 9;
 
     free(response);
 
-    // Sets StartSend bit to 0.
+
+    // Sets StartSend bit to 0, all bits are valid.
     rc522_write(RC522_REG_BIT_FRAMING, 0x00);
 
     response = rc522_picc_write(RC522_CMD_TRANSCEIVE, anticollision, anticollision_size, &res_n, &res_n_bits);
 
-    // Need to verify 1 byte SAK response. Check for size and cascade bit.
-    printf(" SAK response is %d bits\n", res_n_bits);
-    if (!(response[0] & 0x04))
+    // Need to verify 1 byte (actually 24 bits) SAK response. Check for size and cascade bit.
+    if (response != NULL)
     {
-      picc.uid_full = true;
-      picc.type = response[0] & 0x7F;
-    }
+      if (!(response[0] & 0x04))
+      {
+        picc.uid_full = true;
+        picc.type = response[0] & 0x7F;
+      }
 
-    free(response);
+      free(response);
+    }
   }
   else
   {
