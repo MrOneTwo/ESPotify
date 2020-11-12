@@ -23,6 +23,19 @@ typedef struct picc_t {
   uint8_t uid_full;
   uint8_t uid[10];
   uint8_t uid_bits;
+// Types:
+// case 0x04:	return PICC_TYPE_NOT_COMPLETE;
+// case 0x09:	return PICC_TYPE_MIFARE_MINI;
+// case 0x08:	return PICC_TYPE_MIFARE_1K;
+// case 0x18:	return PICC_TYPE_MIFARE_4K;
+// case 0x00:	return PICC_TYPE_MIFARE_UL;
+// case 0x10:
+// case 0x11:	return PICC_TYPE_MIFARE_PLUS;
+// case 0x01:	return PICC_TYPE_TNP3XXX;
+// case 0x20:	return PICC_TYPE_ISO_14443_4;
+// case 0x40:	return PICC_TYPE_ISO_18092;
+// default:	return PICC_TYPE_UNKNOWN;
+  uint8_t type;
 } picc_t;
 
 picc_t picc;
@@ -415,6 +428,7 @@ status_e rc522_anti_collision(uint8_t cascade_level)
     if (!(response[0] & 0x04))
     {
       picc.uid_full = true;
+      type = response[0] & 0x7F;
     }
 
     free(response);
@@ -596,4 +610,36 @@ esp_err_t rc522_resume()
 esp_err_t rc522_pause()
 {
   return ! rc522_timer_running ? ESP_OK : esp_timer_stop(rc522_timer);
+}
+
+void rc522_authenticate(uint8_t cmd,  ///< PICC_CMD_MF_AUTH_KEY_A or PICC_CMD_MF_AUTH_KEY_B
+                        uint8_t block_address,  ///< The block number. See numbering in the comments in the .h file.
+                        uint8_t key[MF_KEY_SIZE])
+{
+  uint8_t irq_wait = 0x10; // IdleIRq
+
+  uint8_t picc_cmd_buffer[12];
+  picc_cmd_buffer[0] = cmd;
+  picc_cmd_buffer[1] = block_address;
+
+  for (uint8_t i = 0; i < MF_KEY_SIZE; i++)
+  {
+    picc_cmd_buffer[2 + i] = key[i];
+  }
+  // Use the last uid uint8_ts as specified in http://cache.nxp.com/documents/application_note/AN10927.pdf
+  // section 3.2.5 "MIFARE Classic Authentication".
+  // The only missed case is the MF1Sxxxx shortcut activation,
+  // but it requires cascade tag (CT) uint8_t, that is not part of uid.
+  for (uint8_t i = 0; i < 4; i++)
+  {
+    // Use the last 4 bytes.
+    picc_cmd_buffer[8 + i] = picc.uid + (picc.uid_bits / 8) - 4;
+  }
+
+  uint8_t* response = rc522_picc_write(RC522_CMD_MF_AUTH, picc_cmd_buffer, 12, &res_n, &res_n_bits);
+
+  if (response != NULL)
+  {
+    free(response);
+  }
 }
