@@ -255,14 +255,12 @@ uint8_t* rc522_picc_write(rc522_commands_e cmd,
     // Check for possible interrupts.
     if (nn & irq_wait)
     {
-      printf("nn & irq_wait\n");
       break;
     }
 
     // This is a timeout.
     if (nn & 0x01)
     {
-      printf("nn & 0x01\n");
       break;
     }
   }
@@ -275,18 +273,11 @@ uint8_t* rc522_picc_write(rc522_commands_e cmd,
     // Check for 0b11011 error bits.
     if((rc522_read(RC522_REG_ERROR) & 0x1B) == 0x00)
     {
+      // The RC522_CMD_MF_AUTH doesn't get a response.
       if(cmd == RC522_CMD_TRANSCEIVE)
-      {
-        printf("TRANS\n");
-      }
-      else if (cmd == RC522_CMD_MF_AUTH)
-      {
-        printf("AUTH\n");
-      }
       {
         // Check how many bytes are in the FIFO buffer. The last one might be an incomplete byte.
         nn = rc522_read(RC522_REG_FIFO_LEVEL);
-        printf("FIFO BUFFER BYTES %d\n", nn);
         // Check if the entire, last byte read is valid. Returns the number of valid bits in the
         // last received byte.
         last_bits = rc522_read(RC522_REG_CONTROL) & 0x07;
@@ -307,14 +298,14 @@ uint8_t* rc522_picc_write(rc522_commands_e cmd,
   return result;
 }
 
-uint8_t rc522_picc_request(void)
+uint8_t rc522_picc_reqa_or_wupa(uint8_t reqa_or_wupa)
 {
   uint8_t status = 0;
   // Set a short frame format of 7 bits. That means that only 7 bits of the last byte,
   // in this case the only byte will be transmitted to the PICC.
   rc522_write(RC522_REG_BIT_FRAMING, 0x07);
 
-  uint8_t picc_cmd_buffer[] = {PICC_CMD_REQA};
+  uint8_t picc_cmd_buffer[] = {reqa_or_wupa};
   uint32_t res_n_bits = 0;
   uint8_t res_n = 0;
   // Result is so called ATQA. If we get an ATQA this means there is one or more PICC present.
@@ -489,13 +480,16 @@ uint8_t* rc522_get_picc_id()
   // CT  => Cascade tag byte (88), signals that the UID is not complete yet
   // BCC => Checkbyte, calculated as exclusive-or over 4 previous bytes
 
-  uint8_t* result = NULL;
   uint8_t* response_data = NULL;
   uint8_t response_data_n;
   uint32_t response_data_n_bits;
 
-  // Look for a PICC using REQA requests.
-  uint8_t picc_present = rc522_picc_request();
+  // If you use REQA you wan't be able to wake the PICC up after doing HALTA at the end of this
+  // function. You'll have to move the PICC away from the reader to reset it to IDLE and then
+  // move it close to reader again.
+  // If you use WUPA you'll be able to wake up the PICC every time. That means the entire process
+  // below will succeed every time.
+  uint8_t picc_present = rc522_picc_reqa_or_wupa(PICC_CMD_REQA);
 
   if (picc_present)
   {
@@ -511,42 +505,46 @@ uint8_t* rc522_get_picc_id()
 
       uint8_t data[16] = {0x1, 0x2};
       rc522_get_picc_data(data);
-      printf("DATA: %x %x %x %x %x %x \n",
+      printf("DATA: %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x\n",
         data[0],
         data[1],
         data[2],
         data[3],
         data[4],
-        data[4]);
+        data[5],
+        data[6],
+        data[7],
+        data[8],
+        data[9],
+        data[10],
+        data[11],
+        data[12],
+        data[13],
+        data[14],
+        data[15]
+      );
     }
     else
     {
+      memset((void*)&picc, 0, sizeof(picc));
       printf("FAILED TO GET A FULL UID...\n");
     }
 
 
     // Halting and clearing the MFCrypto1On bit should be done after readings data.
+    // After halting it needs to be WUPA (waken up).
+    uint8_t picc_cmd_buffer[] = {PICC_CMD_HALTA, 0x00, 0x00, 0x00 };
+    (void)rc522_calculate_crc(picc_cmd_buffer, 2, &picc_cmd_buffer[2]);
 
-    // TODO(michalc): this entire scope below is probably trash.
-    // Halt the PICC - make it repond only to WUPA command.
-    if (result != NULL)
+    response_data = rc522_picc_write(RC522_CMD_TRANSCEIVE, picc_cmd_buffer, 4, &response_data_n, &response_data_n_bits);
+    // Check if cascade bit is set. If so then the UID isn't fully fetched yet.
+    if (response_data != NULL)
     {
-      uint8_t picc_cmd_buffer[] = {PICC_CMD_HALTA, 0x00, 0x00, 0x00 };
-      (void)rc522_calculate_crc(picc_cmd_buffer, 2, &picc_cmd_buffer[2]);
-
-      // Send the command to PICC.
-      response_data = rc522_picc_write(RC522_CMD_TRANSCEIVE, picc_cmd_buffer, 4, &response_data_n, &response_data_n_bits);
-      // Check if cascade bit is set. If so then the UID isn't fully fetched yet.
-      if (response_data != NULL)
-      {
-        free(response_data);
-      }
-
-      // Clear the MFCrypto1On bit.
-      rc522_clear_bitmask(RC522_REG_STATUS_2, 0x08);
-
-      return result;
+      free(response_data);
     }
+
+    // Clear the MFCrypto1On bit.
+    rc522_clear_bitmask(RC522_REG_STATUS_2, 0x08);
   }
 
   return NULL;
@@ -561,7 +559,7 @@ void rc522_get_picc_data(uint8_t* buffer)
   // At least 18 bytes because it's data + CRC_A.
   uint8_t picc_cmd_buffer[18];
   picc_cmd_buffer[0] = PICC_CMD_MF_READ;
-  picc_cmd_buffer[1] = 0x1;  // block address.
+  picc_cmd_buffer[1] = 0x0;  // block address.
   // Calculate the CRC on the RC522 side.
   (void)rc522_calculate_crc(picc_cmd_buffer, 2, &picc_cmd_buffer[2]);
 
@@ -667,15 +665,6 @@ void rc522_authenticate(uint8_t cmd,  ///< PICC_CMD_MF_AUTH_KEY_A or PICC_CMD_MF
   }
 
   uint8_t* response = rc522_picc_write(RC522_CMD_MF_AUTH, picc_cmd_buffer, 12, &response_data_size, &response_data_size_bits);
-
-  if (response)
-  {
-    printf("Authenticate response size %d\n", response_data_size);
-    printf("Authenticate response %x %x %x\n", response[0], response[1], response[2]);
-  }
-
-  if (response != NULL)
-  {
-    free(response);
-  }
+  // Authentication gets no response.
+  assert(response == NULL);
 }

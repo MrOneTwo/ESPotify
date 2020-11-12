@@ -40,8 +40,8 @@ ninja
 ### RFID
 
 - [x] Support for tags with 4 byte UID
-- [ ] Support for tags with 7 byte UID
-- [ ] Support for tags with 10 byte UID
+- [ ] Support for tags with 7 byte UID (implemented; not tested)
+- [ ] Support for tags with 10 byte UID (implemented; not tested)
 
 ### Spotify
 
