@@ -578,7 +578,7 @@ void tag_handler(uint8_t* serial_no)
 {
   if (picc.uid_hot)
   {
-    printf("%s : ", picc.uid_full ? "full" : "not full");
+    printf("type: 0x%x, %s : ", picc.type, picc.uid_full ? "full" : "not full");
     for (int i = 0; i < 10; i++)
     {
       printf("%x ", serial_no[i]);
