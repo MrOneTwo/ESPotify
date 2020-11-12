@@ -144,8 +144,12 @@ status_e rc522_anti_collision(uint8_t cascade_level);
  */
 uint8_t* rc522_get_picc_id();
 
+void rc522_get_picc_data(uint8_t* buffer);
+
 esp_err_t rc522_start();
 esp_err_t rc522_resume();
 esp_err_t rc522_pause();
+
+void rc522_authenticate(uint8_t cmd, uint8_t block_address, uint8_t key[MF_KEY_SIZE]);
 
 #endif // RC522_H

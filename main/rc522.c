@@ -255,12 +255,14 @@ uint8_t* rc522_picc_write(rc522_commands_e cmd,
     // Check for possible interrupts.
     if (nn & irq_wait)
     {
+      printf("nn & irq_wait\n");
       break;
     }
 
-    // I think this is a timeout.
+    // This is a timeout.
     if (nn & 0x01)
     {
+      printf("nn & 0x01\n");
       break;
     }
   }
@@ -275,8 +277,16 @@ uint8_t* rc522_picc_write(rc522_commands_e cmd,
     {
       if(cmd == RC522_CMD_TRANSCEIVE)
       {
+        printf("TRANS\n");
+      }
+      else if (cmd == RC522_CMD_MF_AUTH)
+      {
+        printf("AUTH\n");
+      }
+      {
         // Check how many bytes are in the FIFO buffer. The last one might be an incomplete byte.
         nn = rc522_read(RC522_REG_FIFO_LEVEL);
+        printf("FIFO BUFFER BYTES %d\n", nn);
         // Check if the entire, last byte read is valid. Returns the number of valid bits in the
         // last received byte.
         last_bits = rc522_read(RC522_REG_CONTROL) & 0x07;
@@ -496,11 +506,26 @@ uint8_t* rc522_get_picc_id()
     if (status == SUCCESS)
     {
       printf("GOT A FULL UID!\n");
+      uint8_t key[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+      rc522_authenticate(PICC_CMD_MF_AUTH_KEY_A, 0x1, key);
+
+      uint8_t data[16] = {0x1, 0x2};
+      rc522_get_picc_data(data);
+      printf("DATA: %x %x %x %x %x %x \n",
+        data[0],
+        data[1],
+        data[2],
+        data[3],
+        data[4],
+        data[4]);
     }
     else
     {
       printf("FAILED TO GET A FULL UID...\n");
     }
+
+
+    // Halting and clearing the MFCrypto1On bit should be done after readings data.
 
     // TODO(michalc): this entire scope below is probably trash.
     // Halt the PICC - make it repond only to WUPA command.
@@ -527,43 +552,40 @@ uint8_t* rc522_get_picc_id()
   return NULL;
 }
 
-uint8_t* rc522_get_picc_data()
+void rc522_get_picc_data(uint8_t* buffer)
 {
-  uint8_t* result = NULL;
   uint8_t* response_data = NULL;
   uint8_t response_data_n;
   uint32_t response_data_n_bits;
 
-  uint8_t picc_present = rc522_picc_request();
+  // At least 18 bytes because it's data + CRC_A.
+  uint8_t picc_cmd_buffer[18];
+  picc_cmd_buffer[0] = PICC_CMD_MF_READ;
+  picc_cmd_buffer[1] = 0x1;  // block address.
+  // Calculate the CRC on the RC522 side.
+  (void)rc522_calculate_crc(picc_cmd_buffer, 2, &picc_cmd_buffer[2]);
 
-  if (picc_present)
+  // Send the command to PICC.
+  response_data = rc522_picc_write(RC522_CMD_TRANSCEIVE, picc_cmd_buffer, 4, &response_data_n, &response_data_n_bits);
+  if (response_data)
   {
-    rc522_anti_collision(1);
-
-    if (result != NULL)
+    printf("response_data is OK %d %x\n", response_data_n_bits, response_data[0]);
+    if (response_data_n == 18)
     {
-      // At least 18 bytes because it's data + CRC_A.
-      uint8_t picc_cmd_buffer[18];
-      picc_cmd_buffer[0] = PICC_CMD_MF_READ;
-      picc_cmd_buffer[1] = 0x0;  // block address.
-      // Calculate the CRC on the RC522 side.
-      (void)rc522_calculate_crc(picc_cmd_buffer, 2, &picc_cmd_buffer[2]);
-
-      // Send the command to PICC.
-      response_data = rc522_picc_write(RC522_CMD_TRANSCEIVE, picc_cmd_buffer, 4, &response_data_n, &response_data_n_bits);
-      if (response_data)
-      {
-        free(response_data);
-      }
-
-      // Clear the MFCrypto1On bit.
-      rc522_clear_bitmask(RC522_REG_STATUS_2, 0x08);
-
-      return result;
+      // Copy the actual data bytes but not the CRC bytes.
+      memcpy(buffer, response_data, response_data_n - 2);
     }
+    free(response_data);
+  }
+  else
+  {
+    printf("response_data is NULL\n");
   }
 
-  return NULL;
+
+  // Clear the MFCrypto1On bit.
+  // rc522_clear_bitmask(RC522_REG_STATUS_2, 0x08);
+  return;
 }
 
 static void rc522_timer_callback(void* arg)
@@ -618,34 +640,42 @@ esp_err_t rc522_pause()
   return ! rc522_timer_running ? ESP_OK : esp_timer_stop(rc522_timer);
 }
 
-// void rc522_authenticate(uint8_t cmd,  ///< PICC_CMD_MF_AUTH_KEY_A or PICC_CMD_MF_AUTH_KEY_B
-//                         uint8_t block_address,  ///< The block number. See numbering in the comments in the .h file.
-//                         uint8_t key[MF_KEY_SIZE])
-// {
-//   uint8_t irq_wait = 0x10; // IdleIRq
+void rc522_authenticate(uint8_t cmd,  ///< PICC_CMD_MF_AUTH_KEY_A or PICC_CMD_MF_AUTH_KEY_B
+                        uint8_t block_address,  ///< The block number. See numbering in the comments in the .h file.
+                        uint8_t key[MF_KEY_SIZE])
+{
+  uint8_t response_data_size;
+  uint32_t response_data_size_bits;
+  uint8_t irq_wait = 0x10; // IdleIRq
 
-//   uint8_t picc_cmd_buffer[12];
-//   picc_cmd_buffer[0] = cmd;
-//   picc_cmd_buffer[1] = block_address;
+  uint8_t picc_cmd_buffer[12];
+  picc_cmd_buffer[0] = cmd;
+  picc_cmd_buffer[1] = block_address;
 
-//   for (uint8_t i = 0; i < MF_KEY_SIZE; i++)
-//   {
-//     picc_cmd_buffer[2 + i] = key[i];
-//   }
-//   // Use the last uid uint8_ts as specified in http://cache.nxp.com/documents/application_note/AN10927.pdf
-//   // section 3.2.5 "MIFARE Classic Authentication".
-//   // The only missed case is the MF1Sxxxx shortcut activation,
-//   // but it requires cascade tag (CT) uint8_t, that is not part of uid.
-//   for (uint8_t i = 0; i < 4; i++)
-//   {
-//     // Use the last 4 bytes.
-//     picc_cmd_buffer[8 + i] = *((picc.uid + (picc.uid_bits / 8) - 4) + i);
-//   }
+  for (uint8_t i = 0; i < MF_KEY_SIZE; i++)
+  {
+    picc_cmd_buffer[2 + i] = key[i];
+  }
+  // Use the last uid uint8_ts as specified in http://cache.nxp.com/documents/application_note/AN10927.pdf
+  // section 3.2.5 "MIFARE Classic Authentication".
+  // The only missed case is the MF1Sxxxx shortcut activation,
+  // but it requires cascade tag (CT) uint8_t, that is not part of uid.
+  for (uint8_t i = 0; i < 4; i++)
+  {
+    // Use the last 4 bytes.
+    picc_cmd_buffer[8 + i] = *((picc.uid + (picc.uid_bits / 8) - 4) + i);
+  }
 
-//   uint8_t* response = rc522_picc_write(RC522_CMD_MF_AUTH, picc_cmd_buffer, 12, &res_n, &res_n_bits);
+  uint8_t* response = rc522_picc_write(RC522_CMD_MF_AUTH, picc_cmd_buffer, 12, &response_data_size, &response_data_size_bits);
 
-//   if (response != NULL)
-//   {
-//     free(response);
-//   }
-// }
+  if (response)
+  {
+    printf("Authenticate response size %d\n", response_data_size);
+    printf("Authenticate response %x %x %x\n", response[0], response[1], response[2]);
+  }
+
+  if (response != NULL)
+  {
+    free(response);
+  }
+}
