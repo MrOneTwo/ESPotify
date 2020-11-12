@@ -23,7 +23,6 @@ typedef struct picc_t {
   uint8_t uid_full;
   uint8_t uid[10];
   uint8_t uid_bits;
-  uint8_t cascade_level;
 } picc_t;
 
 picc_t picc;
@@ -31,7 +30,6 @@ picc_t picc;
 esp_err_t rc522_init(spi_device_handle_t* spi)
 {
   rc522_spi = spi;
-  picc.cascade_level = 1;
 
   // ---------- RW test ------------
   rc522_write(RC522_REG_MOD_WIDTH, 0x25);
@@ -466,15 +464,25 @@ uint8_t* rc522_get_picc_id()
   uint8_t response_data_n;
   uint32_t response_data_n_bits;
 
-  // TODO(michalc): I think this is incompatible with multiple anticollision steps. It probably
-  // resets the state of PICC.
+  // Look for a PICC using REQA requests.
   uint8_t picc_present = rc522_picc_request();
 
   if (picc_present)
   {
-    // This updates a global variable.
-    picc.cascade_level = rc522_anti_collision(picc.cascade_level);
+    // The rc522_anti_collision is a recursive function. It stores the full UID in the global
+    // picc variable.
+    status_e status = rc522_anti_collision(1);
 
+    if (status == SUCCESS)
+    {
+      printf("GOT A FULL UID!\n");
+    }
+    else
+    {
+      printf("FAILED TO GET A FULL UID...\n");
+    }
+
+    // TODO(michalc): this entire scope below is probably trash.
     // Halt the PICC - make it repond only to WUPA command.
     if (result != NULL)
     {
@@ -494,11 +502,6 @@ uint8_t* rc522_get_picc_id()
 
       return result;
     }
-  }
-  else
-  {
-    // Go back to the first level of anticollision step.
-    picc.cascade_level = 1;
   }
 
   return NULL;
