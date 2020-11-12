@@ -144,7 +144,7 @@ status_e rc522_anti_collision(uint8_t cascade_level);
  */
 uint8_t* rc522_get_picc_id();
 
-void rc522_get_picc_data(uint8_t* buffer);
+void rc522_read_picc_data(uint8_t* buffer);
 
 esp_err_t rc522_start();
 esp_err_t rc522_resume();

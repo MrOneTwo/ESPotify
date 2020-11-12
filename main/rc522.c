@@ -503,7 +503,7 @@ uint8_t* rc522_get_picc_id()
       rc522_authenticate(PICC_CMD_MF_AUTH_KEY_A, 0x1, key);
 
       uint8_t data[16] = {0x1, 0x2};
-      rc522_get_picc_data(data);
+      rc522_read_picc_data(data);
       printf("DATA: %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x\n",
         data[0],
         data[1],
@@ -549,7 +549,7 @@ uint8_t* rc522_get_picc_id()
   return NULL;
 }
 
-void rc522_get_picc_data(uint8_t* buffer)
+void rc522_read_picc_data(uint8_t* buffer)
 {
   uint8_t* response_data = NULL;
   uint8_t response_data_n;
@@ -599,36 +599,6 @@ void tag_handler(uint8_t* serial_no)
   }
 }
 
-esp_err_t rc522_start()
-{
-  // rc522_init();
-
-  const esp_timer_create_args_t timer_args = {
-    .callback = &rc522_timer_callback,
-    .arg = (void*)tag_handler,
-    .name = "timer_picc_reqa",
-  };
-
-  esp_err_t ret = esp_timer_create(&timer_args, &rc522_timer);
-
-  if(ret != ESP_OK) {
-    return ret;
-  }
-
-  return rc522_resume();
-}
-
-esp_err_t rc522_resume()
-{
-  // 125000 microseconds means 8Hz.
-  return rc522_timer_running ? ESP_OK : esp_timer_start_periodic(rc522_timer, 125000);
-}
-
-esp_err_t rc522_pause()
-{
-  return ! rc522_timer_running ? ESP_OK : esp_timer_stop(rc522_timer);
-}
-
 void rc522_authenticate(uint8_t cmd,  ///< PICC_CMD_MF_AUTH_KEY_A or PICC_CMD_MF_AUTH_KEY_B
                         uint8_t block_address,  ///< The block number. See numbering in the comments in the .h file.
                         uint8_t key[MF_KEY_SIZE])
@@ -658,4 +628,34 @@ void rc522_authenticate(uint8_t cmd,  ///< PICC_CMD_MF_AUTH_KEY_A or PICC_CMD_MF
   uint8_t* response = rc522_picc_write(RC522_CMD_MF_AUTH, picc_cmd_buffer, 12, &response_data_size, &response_data_size_bits);
   // Authentication gets no response.
   assert(response == NULL);
+}
+
+esp_err_t rc522_start()
+{
+  // rc522_init();
+
+  const esp_timer_create_args_t timer_args = {
+    .callback = &rc522_timer_callback,
+    .arg = (void*)tag_handler,
+    .name = "timer_picc_reqa",
+  };
+
+  esp_err_t ret = esp_timer_create(&timer_args, &rc522_timer);
+
+  if(ret != ESP_OK) {
+    return ret;
+  }
+
+  return rc522_resume();
+}
+
+esp_err_t rc522_resume()
+{
+  // 125000 microseconds means 8Hz.
+  return rc522_timer_running ? ESP_OK : esp_timer_start_periodic(rc522_timer, 125000);
+}
+
+esp_err_t rc522_pause()
+{
+  return ! rc522_timer_running ? ESP_OK : esp_timer_stop(rc522_timer);
 }
