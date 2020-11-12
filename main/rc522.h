@@ -66,6 +66,8 @@
 #define PICC_CMD_SELECT_CL_2      0x95
 #define PICC_CMD_SELECT_CL_3      0x97
 
+#define PICC_CASCADE_TAG          0x88
+
 typedef void(*rc522_tag_callback_t)(uint8_t*);
 
 typedef struct {

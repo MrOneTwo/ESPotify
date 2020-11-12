@@ -353,7 +353,14 @@ uint8_t rc522_anti_collision(uint8_t cascade_level)
   if (cascade_level == 1)
   {
     // Check the condition for having full UID.
-    if (result[0] & 0x04) picc.uid_full = false;
+    if (result[0] == PICC_CASCADE_TAG)
+    {
+      picc.uid_full = false;
+    }
+    else
+    {
+      picc.uid_full = true;
+    }
     // Copy bytes UID bytes without the BCC byte.
     memcpy(picc.uid, result, res_n - 1);
     picc.uid_bits = res_n_bits;
@@ -387,6 +394,7 @@ uint8_t rc522_anti_collision(uint8_t cascade_level)
   return status;
 }
 
+// TODO(michalc): this could be redesigned to be a recursive function to fetch the complete UID.
 uint8_t* rc522_get_picc_id()
 {
   uint8_t* result = NULL;
