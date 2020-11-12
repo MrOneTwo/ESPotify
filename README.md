@@ -19,6 +19,13 @@ but I'm not there yet.
 
 ## Features/TODO
 
+### RFID
+
 - [x] Support for tags with 4 byte UID
 - [ ] Support for tags with 7 byte UID
 - [ ] Support for tags with 10 byte UID
+
+### Spotify
+
+- [x] Refreshing the access token
+  - [ ] Refreshing the access token only when previous expired
