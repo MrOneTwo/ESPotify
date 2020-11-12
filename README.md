@@ -29,3 +29,15 @@ but I'm not there yet.
 
 - [x] Refreshing the access token
   - [ ] Refreshing the access token only when previous expired
+
+## FAQ
+
+**Why ESP-IDF and not Arduino?**
+
+Because I value performance and I like learning new things. This my first (serious) **ESP-IDF**
+project. **Arduino** framework is boring - objectively true.
+
+**Why custom MFRC522 driver?**
+
+Because I couldn't find a quality driver for **ESP-IDF** which supports everything I need. It's
+also a great learning experience to write your own driver.
