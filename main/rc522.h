@@ -58,6 +58,11 @@
 #define PICC_CASCADE_TAG          0x88
 
 typedef enum {
+  FAILURE,
+  SUCCESS,
+} status_e;
+
+typedef enum {
   RC522_CMD_IDLE          = (0b0000),
   RC522_CMD_MEM           = (0b0001),
   RC522_CMD_GEN_RANDOM_ID = (0b0010),
@@ -117,7 +122,7 @@ uint8_t rc522_picc_request(void);
  * This performs the anticollision step of selecting PICC. It basically
  * means reading the UID of the PICC.
  */
-uint8_t rc522_anti_collision(uint8_t cascade_level);
+status_e rc522_anti_collision(uint8_t cascade_level);
 
 /*
  * This wraps the rc522_anti_collision function.

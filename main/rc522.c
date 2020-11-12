@@ -315,10 +315,9 @@ uint8_t rc522_picc_request(void)
 }
 
 // TODO(michalc): return value should reflect success which depends on the cascade_level.
-uint8_t rc522_anti_collision(uint8_t cascade_level)
+status_e rc522_anti_collision(uint8_t cascade_level)
 {
-  uint8_t status = 0;
-  uint8_t* result = NULL;
+  uint8_t* response = NULL;
   uint8_t res_n;
   uint32_t res_n_bits = 0;
 
@@ -355,9 +354,9 @@ uint8_t rc522_anti_collision(uint8_t cascade_level)
   // Sets StartSend bit to 0.
   rc522_write(RC522_REG_BIT_FRAMING, 0x00);
 
-  result = rc522_picc_write(RC522_CMD_TRANSCEIVE, anticollision, anticollision_size, &res_n, &res_n_bits);
+  response = rc522_picc_write(RC522_CMD_TRANSCEIVE, anticollision, anticollision_size, &res_n, &res_n_bits);
 
-  if (result == NULL)
+  if (response == NULL)
   {
     // TODO(michalc): what now...?
   }
@@ -369,7 +368,7 @@ uint8_t rc522_anti_collision(uint8_t cascade_level)
   {
     // TODO(michalc): error out
   }
-  if(result[4] != (result[0] ^ result[1] ^ result[2] ^ result[3]))
+  if(response[4] != (response[0] ^ response[1] ^ response[2] ^ response[3]))
   {
     // TODO(michalc): handle incorrect BCC byte value.
   }
@@ -377,11 +376,11 @@ uint8_t rc522_anti_collision(uint8_t cascade_level)
   // 4. Extract the UID bytes.
 
   // Check the condition for having full UID.
-  if (result[0] != PICC_CASCADE_TAG)
+  if (response[0] != PICC_CASCADE_TAG)
   {
     // Here we skip copying of the BCC byte.
     picc.uid_full = true;
-    memcpy(picc.uid, result, res_n - 1);
+    memcpy(picc.uid, response, res_n - 1);
     picc.uid_bits = 4 * 8;
     picc.uid_hot = 1;
   }
@@ -389,7 +388,7 @@ uint8_t rc522_anti_collision(uint8_t cascade_level)
   {
     // Here we skip copying both CT byte and the BCC byte.
     picc.uid_full = false;
-    memcpy(picc.uid, result + 1, res_n - 2);
+    memcpy(picc.uid, response + 1, res_n - 2);
     picc.uid_bits = 3 * 8;
     picc.uid_hot = 1;
   }
@@ -399,34 +398,39 @@ uint8_t rc522_anti_collision(uint8_t cascade_level)
   if ((cascade_level == 1) || (cascade_level == 2) || (cascade_level == 3))
   {
     anticollision[1] = 0x20 + 0x50;
-    memcpy(&anticollision[2], result, 5);
+    memcpy(&anticollision[2], response, 5);
     anticollision[6] = anticollision[2] ^ anticollision[3] ^ anticollision[4] ^ anticollision[5];
     anticollision_size = 7;
 
-    free(result);
+    free(response);
 
     // Sets StartSend bit to 0.
     rc522_write(RC522_REG_BIT_FRAMING, 0x00);
 
-    result = rc522_picc_write(RC522_CMD_TRANSCEIVE, anticollision, anticollision_size, &res_n, &res_n_bits);
+    response = rc522_picc_write(RC522_CMD_TRANSCEIVE, anticollision, anticollision_size, &res_n, &res_n_bits);
 
     // Need to verify 1 byte SAK response. Check for size and cascade bit.
     printf(" SAK response is %d bits\n", res_n_bits);
-    if (!(result[0] & 0x04))
+    if (!(response[0] & 0x04))
     {
       picc.uid_full = true;
     }
 
-    free(result);
+    free(response);
   }
   else
   {
     // TODO(michalc): should never happen.
   }
 
-  if (picc.uid_full == false)
+  status_e status = FAILURE;
+  if (picc.uid_full == true)
   {
-    rc522_anti_collision(cascade_level + 1);
+    status = SUCCESS;
+  }
+  else
+  {
+    status = rc522_anti_collision(cascade_level + 1);
   }
 
   return status;
