@@ -321,100 +321,112 @@ uint8_t rc522_anti_collision(uint8_t cascade_level)
   uint8_t* result = NULL;
   uint8_t res_n;
   uint32_t res_n_bits = 0;
+
+  // 1. Build an a SELECTION/ANTI COLLISION request.
+
   // Set NVB. First anti collision round sets the NVB to 0x20.
   // After that NVB should be increased by UID bits count that were already
   // fetched. Those become a search criteria for fetching the rest of the UID.
   // After all the anticollision steps the select step needs to be performed.
   uint8_t anticollision[9];
   uint8_t anticollision_size = 2;
+  anticollision[1] = 0x20;
+
   if (cascade_level == 1)
   {
     anticollision[0] = PICC_CMD_SELECT_CL_1;
-    // 2 bytes, 0 bits.
-    anticollision[1] = 0x20;
-    anticollision_size = 2;
   }
   else if (cascade_level == 2)
   {
     // TODO(michalc): for now I just assume that we've received full bytes of UID. No trailing bits.
     anticollision[0] = PICC_CMD_SELECT_CL_2;
-    anticollision[1] = 0x20 + 0x50;
-    memcpy(&anticollision[2], picc.uid, 4);
-    anticollision[6] = anticollision[2] ^ anticollision[3] ^ anticollision[4] ^ anticollision[5];
-    anticollision_size = 7;
   }
   else if (cascade_level == 3)
   {
     anticollision[0] = PICC_CMD_SELECT_CL_3;
-    anticollision[1] = 0x20 + 0x50;
-    memcpy(&anticollision[2], picc.uid, 4);
-    anticollision[6] = anticollision[2] ^ anticollision[3] ^ anticollision[4] ^ anticollision[5];
-    anticollision_size = 7;
   }
   else
   {
     // TODO(michalc): should never happen.
   }
+
+  // 2. Send the ANTI COLLISION request.
 
   // Sets StartSend bit to 0.
   rc522_write(RC522_REG_BIT_FRAMING, 0x00);
 
   result = rc522_picc_write(RC522_CMD_TRANSCEIVE, anticollision, anticollision_size, &res_n, &res_n_bits);
 
-  if (cascade_level == 1)
+  if (result == NULL)
   {
-    // Check the condition for having full UID.
-    if (result[0] == PICC_CASCADE_TAG)
-    {
-      picc.uid_full = false;
-      status += 1;
-    }
-    else
-    {
-      picc.uid_full = true;
-    }
-    // Copy bytes UID bytes without the BCC byte.
+    // TODO(michalc): what now...?
+  }
+
+  // 3. Handle the ANTI COLLISION request response.
+
+  // Check the BCC byte (XORed UID bytes).
+  if (res_n != 5)
+  {
+    // TODO(michalc): error out
+  }
+  if(result[4] != (result[0] ^ result[1] ^ result[2] ^ result[3]))
+  {
+    // TODO(michalc): handle incorrect BCC byte value.
+  }
+
+  // 4. Extract the UID bytes.
+
+  // Check the condition for having full UID.
+  if (result[0] != PICC_CASCADE_TAG)
+  {
+    // Here we skip copying of the BCC byte.
+    picc.uid_full = true;
     memcpy(picc.uid, result, res_n - 1);
-    picc.uid_bits = res_n_bits;
+    picc.uid_bits = 4 * 8;
     picc.uid_hot = 1;
-
-    // Check the BCC byte (XORed UID bytes).
-    if (res_n == 5)
-    {
-      if(result[4] != (result[0] ^ result[1] ^ result[2] ^ result[3]))
-      {
-        // TODO(michalc): handle incorrect BCC byte value.
-      }
-    }
   }
-  else if (cascade_level == 2)
+  else
   {
-    // Check the condition for having full UID.
-    if (result[0] == PICC_CASCADE_TAG)
-    {
-      picc.uid_full = false;
-      status += 1;
-    }
-    else
+    // Here we skip copying both CT byte and the BCC byte.
+    picc.uid_full = false;
+    memcpy(picc.uid, result + 1, res_n - 2);
+    picc.uid_bits = 3 * 8;
+    picc.uid_hot = 1;
+  }
+
+  // 5. Send a SELECTION request.
+
+  if ((cascade_level == 1) || (cascade_level == 2) || (cascade_level == 3))
+  {
+    anticollision[1] = 0x20 + 0x50;
+    memcpy(&anticollision[2], result, 5);
+    anticollision[6] = anticollision[2] ^ anticollision[3] ^ anticollision[4] ^ anticollision[5];
+    anticollision_size = 7;
+
+    free(result);
+
+    // Sets StartSend bit to 0.
+    rc522_write(RC522_REG_BIT_FRAMING, 0x00);
+
+    result = rc522_picc_write(RC522_CMD_TRANSCEIVE, anticollision, anticollision_size, &res_n, &res_n_bits);
+
+    // Need to verify 1 byte SAK response. Check for size and cascade bit.
+    printf(" SAK response is %d bits\n", res_n_bits);
+    if (!(result[0] & 0x04))
     {
       picc.uid_full = true;
     }
 
-    printf("\n");
-    for (uint8_t i = 0; i < res_n; i++)
-    {
-      printf("%x ", result[i]);
-    }
-    printf("\n");
-    picc.uid_hot = 1;
-    status = 3;
-  }
-  else if (cascade_level == 3)
-  {
+    free(result);
   }
   else
   {
     // TODO(michalc): should never happen.
+  }
+
+  if (picc.uid_full == false)
+  {
+    rc522_anti_collision(cascade_level + 1);
   }
 
   return status;
@@ -427,14 +439,17 @@ uint8_t* rc522_get_picc_id()
   //
   // write len=1, data= 26                   => Welcome (REQA)
   // read: len=2 val= 44 00: OK              => Respond (ATQA)
+  //
   // write len=2, data= 93 20                => Select cascade 1 (SEL)
   // read: len=5 val= 88 04 f2 52 2c: OK     => CT, UID, BCC
   // write len=7, data= 93 70 88 04 f2 52 2c => Select available tag (SEL)
   // read: len=1 val= 04: OK                 => Select Acknowledge (SAK)
+  //
   // write len=2, data= 95 20                => Select cascade 2 (SEL)
   // read: len=5 val= b1 ec 02 80 df: OK     => UID, BCC
   // write len=7, data= 95 70 b1 ec 02 80 df => Finish select (SEL)
   // read: len=1 val= 00: OK                 => SAK without cascade bit set
+  //
   // Layer 2 success (ISO 14443-3 A)         => UID = 04 f2 52 b1 ec 02 80
   // CT  => Cascade tag byte (88), signals that the UID is not complete yet
   // BCC => Checkbyte, calculated as exclusive-or over 4 previous bytes
