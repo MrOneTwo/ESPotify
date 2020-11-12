@@ -128,8 +128,14 @@ uint8_t* rc522_picc_write(rc522_commands_e cmd,
 uint8_t rc522_picc_request(void);
 
 /*
- * This performs the anticollision step of selecting PICC. It basically
- * means reading the UID of the PICC.
+ * This function tries to read the entire UID from the PICC. This is way more complicated than
+ * one might expect, mostly because of different UID lengths (4, 7, 10 bytes) and a possiblity of
+ * receiving partial byte.
+ *
+ * This function is a recursive function which tries to handle all the cascading levels of reading
+ * UID into a global variable.
+ *
+ * Returns SUCCESS if a full UID has been read.
  */
 status_e rc522_anti_collision(uint8_t cascade_level);
 
