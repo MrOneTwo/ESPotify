@@ -92,6 +92,17 @@ typedef enum {
   RC522_CMD_SOFT_RESET    = (0b1111),
 } rc522_commands_e;
 
+/*
+ * The response from the RC522 + PICC is a repeating concept. It doesn't differ that much from
+ * a normal uint8_t buffer. It just carries its size information in bits and bytes with it. That's
+ * because the response size might not be a multiple of 8 bits.
+ */
+typedef struct response_t {
+  uint8_t* data;
+  uint32_t size_bytes;
+  uint32_t size_bits;
+} response_t;
+
 typedef void(*rc522_tag_callback_t)(uint8_t*);
 
 // TODO(michalc): throw this structure out.
@@ -126,9 +137,7 @@ uint8_t* rc522_calculate_crc(uint8_t *data, uint8_t data_size, uint8_t* crc_buf)
  * This function returns both: response's size in bytes and in bits. That's because it's possible
  * to receive a partial byte. It's important during anti collision stage.
  */
-uint8_t* rc522_picc_write(rc522_commands_e cmd,
-                          uint8_t* data, uint8_t data_size,
-                          uint8_t* response_size_bytes, uint32_t* response_size_bits);
+void rc522_picc_write(rc522_commands_e cmd, uint8_t* data, uint8_t data_size, response_t* response);
 
 /*
  * This function is for waking up a PICC. It transmits the REQA command.

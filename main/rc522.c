@@ -201,11 +201,10 @@ uint8_t* rc522_calculate_crc(uint8_t *data, uint8_t data_size, uint8_t* crc_buf)
   return crc_buf;
 }
 
-uint8_t* rc522_picc_write(rc522_commands_e cmd,
+void rc522_picc_write(rc522_commands_e cmd,
                           uint8_t* data, uint8_t data_size,
-                          uint8_t* response_size_bytes, uint32_t* response_size_bits)
+                          response_t* response)
 {
-  uint8_t *result = NULL;
   uint8_t irq = 0x00;
   uint8_t irq_wait = 0x00;
   uint8_t last_bits = 0;
@@ -281,30 +280,31 @@ uint8_t* rc522_picc_write(rc522_commands_e cmd,
         // Returns the number of valid bits in the last received byte. The response might have been
         // smaller than 1 byte.
         last_bits = rc522_read(RC522_REG_CONTROL) & 0x07;
+        response->size_bytes = nn;
         if (last_bits == 0)
         {
-          *response_size_bytes = nn;
+          response->size_bits = response->size_bytes * 8U;
         }
         else
         {
-          *response_size_bits = (nn * 8U) - (8 - last_bits);
+          response->size_bits = (nn * 8U) - (8 - last_bits);
         }
 
-        if (*response_size_bytes)
+        if (response->size_bytes)
         {
-          result = (uint8_t*)malloc(*response_size_bytes);
+          response->data = (uint8_t*)malloc(response->size_bytes);
 
           // Fetch the response.
-          for(i = 0; i < *response_size_bytes; i++)
+          for(i = 0; i < response->size_bytes; i++)
           {
-            result[i] = rc522_read(RC522_REG_FIFO_DATA);
+            response->data[i] = rc522_read(RC522_REG_FIFO_DATA);
           }
         }
       }
     }
   }
 
-  return result;
+  return;
 }
 
 uint8_t rc522_picc_reqa_or_wupa(uint8_t reqa_or_wupa)
@@ -315,18 +315,19 @@ uint8_t rc522_picc_reqa_or_wupa(uint8_t reqa_or_wupa)
   rc522_write(RC522_REG_BIT_FRAMING, 0x07);
 
   uint8_t picc_cmd_buffer[] = {reqa_or_wupa};
-  uint32_t res_n_bits = 0;
-  uint8_t res_n = 0;
+  response_t resp = {};
   // Result is so called ATQA. If we get an ATQA this means there is one or more PICC present.
   // ATQA is exactly 2 bytes.
-  uint8_t* response = rc522_picc_write(RC522_CMD_TRANSCEIVE, picc_cmd_buffer, 1, &res_n, &res_n_bits);
+  rc522_picc_write(RC522_CMD_TRANSCEIVE, picc_cmd_buffer, 1, &resp);
 
-  if (response != NULL)
+  if (resp.data != NULL)
   {
-    free(response);
+    free(resp.data);
+    resp.size_bytes = 0;
+    resp.size_bits = 0;
   }
 
-  if(res_n == 2 && res_n_bits == 16)
+  if(resp.size_bytes == 2 && resp.size_bits == 16)
   {
     // A PICC has responded to REQA.
     status = 1;
@@ -341,9 +342,7 @@ status_e rc522_anti_collision(uint8_t cascade_level)
   assert(cascade_level > 0);
   assert(cascade_level <= 3);
 
-  uint8_t* response = NULL;
-  uint8_t res_n;
-  uint32_t res_n_bits = 0;
+  response_t resp = {};
 
   // 1. Build an a ANTI COLLISION command.
 
@@ -379,9 +378,9 @@ status_e rc522_anti_collision(uint8_t cascade_level)
   // Sets StartSend bit to 0, all bits are valid.
   rc522_write(RC522_REG_BIT_FRAMING, 0x00);
 
-  response = rc522_picc_write(RC522_CMD_TRANSCEIVE, anticollision, anticollision_size, &res_n, &res_n_bits);
+  rc522_picc_write(RC522_CMD_TRANSCEIVE, anticollision, anticollision_size, &resp);
 
-  if (response == NULL)
+  if (resp.data == NULL)
   {
     return FAILURE;
   }
@@ -389,11 +388,11 @@ status_e rc522_anti_collision(uint8_t cascade_level)
   // 3. Handle the ANTI COLLISION command response.
 
   // Check the BCC byte (XORed UID bytes).
-  if (res_n != 5)
+  if (resp.size_bytes != 5)
   {
     // TODO(michalc): error out
   }
-  if(response[4] != (response[0] ^ response[1] ^ response[2] ^ response[3]))
+  if (resp.data[4] != (resp.data[0] ^ resp.data[1] ^ resp.data[2] ^ resp.data[3]))
   {
     // TODO(michalc): handle incorrect BCC byte value.
   }
@@ -401,11 +400,11 @@ status_e rc522_anti_collision(uint8_t cascade_level)
   // 4. Extract the UID bytes.
 
   // Check the condition for having full UID.
-  if (response[0] != PICC_CASCADE_TAG)
+  if (resp.data[0] != PICC_CASCADE_TAG)
   {
     // Here we skip copying of the BCC byte.
     picc.uid_full = true;
-    memcpy(picc.uid, response, res_n - 1);
+    memcpy(picc.uid, resp.data, resp.size_bytes - 1);
     picc.uid_bits = 4 * 8;
     picc.uid_hot = 1;
   }
@@ -413,7 +412,7 @@ status_e rc522_anti_collision(uint8_t cascade_level)
   {
     // Here we skip copying both CT byte and the BCC byte.
     picc.uid_full = false;
-    memcpy(picc.uid, response + 1, res_n - 2);
+    memcpy(picc.uid, resp.data + 1, resp.size_bytes - 2);
     picc.uid_bits = 3 * 8;
     picc.uid_hot = 1;
   }
@@ -423,31 +422,31 @@ status_e rc522_anti_collision(uint8_t cascade_level)
   if ((cascade_level == 1) || (cascade_level == 2) || (cascade_level == 3))
   {
     anticollision[1] = 0x20 + 0x50;
-    memcpy(&anticollision[2], response, 5);
+    memcpy(&anticollision[2], resp.data, 5);
     // BCC and the CRC is transmitted only if we know all the UID bits of the current cascade level.
     anticollision[6] = anticollision[2] ^ anticollision[3] ^ anticollision[4] ^ anticollision[5];
     anticollision_size = 7;
     (void)rc522_calculate_crc(anticollision, 7, &anticollision[7]);
     anticollision_size = 9;
 
-    free(response);
+    free(resp.data);
 
 
     // Sets StartSend bit to 0, all bits are valid.
     rc522_write(RC522_REG_BIT_FRAMING, 0x00);
 
-    response = rc522_picc_write(RC522_CMD_TRANSCEIVE, anticollision, anticollision_size, &res_n, &res_n_bits);
+    rc522_picc_write(RC522_CMD_TRANSCEIVE, anticollision, anticollision_size, &resp);
 
     // Need to verify 1 byte (actually 24 bits) SAK response. Check for size and cascade bit.
-    if (response != NULL)
+    if (resp.data != NULL)
     {
-      if (!(response[0] & 0x04))
+      if (!(resp.data[0] & 0x04))
       {
         picc.uid_full = true;
-        picc.type = response[0] & 0x7F;
+        picc.type = resp.data[0] & 0x7F;
       }
 
-      free(response);
+      free(resp.data);
     }
   }
   else
@@ -490,9 +489,7 @@ uint8_t* rc522_get_picc_id()
   // CT  => Cascade tag byte (88), signals that the UID is not complete yet
   // BCC => Checkbyte, calculated as exclusive-or over 4 previous bytes
 
-  uint8_t* response_data = NULL;
-  uint8_t response_data_n;
-  uint32_t response_data_n_bits;
+  response_t resp = {};
 
   // If you use REQA you wan't be able to wake the PICC up after doing HALTA at the end of this
   // function. You'll have to move the PICC away from the reader to reset it to IDLE and then
@@ -558,11 +555,11 @@ uint8_t* rc522_get_picc_id()
     uint8_t picc_cmd_buffer[] = {PICC_CMD_HALTA, 0x00, 0x00, 0x00 };
     (void)rc522_calculate_crc(picc_cmd_buffer, 2, &picc_cmd_buffer[2]);
 
-    response_data = rc522_picc_write(RC522_CMD_TRANSCEIVE, picc_cmd_buffer, 4, &response_data_n, &response_data_n_bits);
+    rc522_picc_write(RC522_CMD_TRANSCEIVE, picc_cmd_buffer, 4, &resp);
     // Check if cascade bit is set. If so then the UID isn't fully fetched yet.
-    if (response_data != NULL)
+    if (resp.data != NULL)
     {
-      free(response_data);
+      free(resp.data);
     }
 
     // Clear the MFCrypto1On bit.
@@ -574,9 +571,7 @@ uint8_t* rc522_get_picc_id()
 
 void rc522_read_picc_data(uint8_t block_address, uint8_t buffer[16])
 {
-  uint8_t* response_data = NULL;
-  uint8_t response_data_n;
-  uint32_t response_data_n_bits;
+  response_t resp = {};
 
   // At least 18 bytes because it's data + CRC_A.
   uint8_t picc_cmd_buffer[18];
@@ -586,26 +581,26 @@ void rc522_read_picc_data(uint8_t block_address, uint8_t buffer[16])
   (void)rc522_calculate_crc(picc_cmd_buffer, 2, &picc_cmd_buffer[2]);
 
   // Send the command to PICC.
-  response_data = rc522_picc_write(RC522_CMD_TRANSCEIVE, picc_cmd_buffer, 4, &response_data_n, &response_data_n_bits);
+  rc522_picc_write(RC522_CMD_TRANSCEIVE, picc_cmd_buffer, 4, &resp);
 
-  if (response_data != NULL)
+  if (resp.data != NULL)
   {
-    if (response_data_n_bits == 4)
+    if (resp.size_bits == 4)
     {
-      if (response_data[0] != MF_ACK)
+      if (resp.data[0] != MF_ACK)
       {
-        printf("PICC responded with NAK (%x) when trying to read data!\n", response_data[0]);
+        printf("PICC responded with NAK (%x) when trying to read data!\n", resp.data[0]);
         return;
       }
     }
 
     // If it's not NAK then it's most probably the actual data.
-    if (response_data_n == 18)
+    if (resp.size_bytes == 18)
     {
       // Copy the actual data bytes but not the CRC bytes.
-      memcpy(buffer, response_data, response_data_n - 2);
+      memcpy(buffer, resp.data, resp.size_bytes - 2);
     }
-    free(response_data);
+    free(resp.data);
   }
 
   return;
@@ -613,9 +608,7 @@ void rc522_read_picc_data(uint8_t block_address, uint8_t buffer[16])
 
 void rc522_write_picc_data(uint8_t block_address, uint8_t buffer[18])
 {
-  uint8_t* response_data = NULL;
-  uint8_t response_data_n;
-  uint32_t response_data_n_bits;
+  response_t resp = {};
 
   uint8_t picc_cmd_buffer[4];
   picc_cmd_buffer[0] = PICC_CMD_MF_WRITE;
@@ -624,43 +617,43 @@ void rc522_write_picc_data(uint8_t block_address, uint8_t buffer[18])
   (void)rc522_calculate_crc(picc_cmd_buffer, 2, &picc_cmd_buffer[2]);
 
   // Send the command to PICC.
-  response_data = rc522_picc_write(RC522_CMD_TRANSCEIVE, picc_cmd_buffer, 4, &response_data_n, &response_data_n_bits);
+  rc522_picc_write(RC522_CMD_TRANSCEIVE, picc_cmd_buffer, 4, &resp);
 
   // Here you can get a response of 12 bits and I think that's a 'fuck off' response.
-  printf("--------   %d\n", response_data_n_bits);
+  printf("--------   %d\n", resp.size_bytes);
 
-  if (response_data != NULL)
+  if (resp.data != NULL)
   {
-    if (response_data_n_bits == 4)
+    if (resp.size_bits == 4)
     {
-      if (response_data[0] != MF_ACK)
+      if (resp.data[0] != MF_ACK)
       {
-        printf("PICC responded with NAK (%x) when trying to write data!\n", response_data[0]);
+        printf("PICC responded with NAK (%x) when trying to write data!\n", resp.data[0]);
         return;
       }
     }
 
-    free(response_data);
+    free(resp.data);
   }
 
   // We always write 16 bytes. No other way to do a write.
   (void)rc522_calculate_crc(buffer, 16, &picc_cmd_buffer[16]);
-  response_data = rc522_picc_write(RC522_CMD_TRANSCEIVE, buffer, 16, &response_data_n, &response_data_n_bits);
+  rc522_picc_write(RC522_CMD_TRANSCEIVE, buffer, 16, &resp);
 
-  printf("--------   %d\n", response_data_n_bits);
+  printf("--------   %d\n", resp.size_bits);
 
-  if (response_data != NULL)
+  if (resp.data != NULL)
   {
-    if (response_data_n_bits == 4)
+    if (resp.size_bits == 4)
     {
-      if (response_data[0] != MF_ACK)
+      if (resp.data[0] != MF_ACK)
       {
-        printf("PICC responded with NAK (%x) when trying to write data!\n", response_data[0]);
+        printf("PICC responded with NAK (%x) when trying to write data!\n", resp.data[0]);
         return;
       }
     }
 
-    free(response_data);
+    free(resp.data);
   }
 
   return;
@@ -692,8 +685,7 @@ void rc522_authenticate(uint8_t cmd_auth_key_a_or_b,
                         uint8_t block_address,
                         uint8_t key[MF_KEY_SIZE])
 {
-  uint8_t response_data_size;
-  uint32_t response_data_size_bits;
+  response_t resp = {};
 
   uint8_t picc_cmd_buffer[12];
   picc_cmd_buffer[0] = cmd_auth_key_a_or_b;
@@ -710,9 +702,9 @@ void rc522_authenticate(uint8_t cmd_auth_key_a_or_b,
     picc_cmd_buffer[8 + i] = *((picc.uid + (picc.uid_bits / 8) - 4) + i);
   }
 
-  uint8_t* response = rc522_picc_write(RC522_CMD_MF_AUTH, picc_cmd_buffer, 12, &response_data_size, &response_data_size_bits);
+  rc522_picc_write(RC522_CMD_MF_AUTH, picc_cmd_buffer, 12, &resp);
   // Authentication gets no response.
-  assert(response == NULL);
+  assert(resp.data == NULL);
 }
 
 esp_err_t rc522_start()
