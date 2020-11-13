@@ -66,6 +66,14 @@
 #define PICC_CASCADE_TAG          0x88
 #define MF_KEY_SIZE                  6
 
+// Code Transfer buffer validity  Description
+// Ah   -                         Acknowledge (ACK)
+// 0h   valid                     invalid operation
+// 1h   valid                     parity or CRC error
+// 4h   invalid                   invalid operation
+// 5h   invalid                   parity or CRC error
+#define MF_ACK  0xA
+
 typedef enum {
   FAILURE,
   SUCCESS,

@@ -278,18 +278,27 @@ uint8_t* rc522_picc_write(rc522_commands_e cmd,
       {
         // Check how many bytes are in the FIFO buffer. The last one might be an incomplete byte.
         nn = rc522_read(RC522_REG_FIFO_LEVEL);
-        // Check if the entire, last byte read is valid. Returns the number of valid bits in the
-        // last received byte.
+        // Returns the number of valid bits in the last received byte. The response might have been
+        // smaller than 1 byte.
         last_bits = rc522_read(RC522_REG_CONTROL) & 0x07;
-        *response_size_bytes = nn;
-        *response_size_bits = nn * 8U + last_bits;
-
-        // TODO(michalc): I don't like mallocing in this function.
-        result = (uint8_t*)malloc(*response_size_bytes);
-
-        for(i = 0; i < *response_size_bytes; i++)
+        if (last_bits == 0)
         {
-          result[i] = rc522_read(RC522_REG_FIFO_DATA);
+          *response_size_bytes = nn;
+        }
+        else
+        {
+          *response_size_bits = (nn * 8U) - (8 - last_bits);
+        }
+
+        if (*response_size_bytes)
+        {
+          result = (uint8_t*)malloc(*response_size_bytes);
+
+          // Fetch the response.
+          for(i = 0; i < *response_size_bytes; i++)
+          {
+            result[i] = rc522_read(RC522_REG_FIFO_DATA);
+          }
         }
       }
     }
@@ -578,8 +587,19 @@ void rc522_read_picc_data(uint8_t block_address, uint8_t buffer[16])
 
   // Send the command to PICC.
   response_data = rc522_picc_write(RC522_CMD_TRANSCEIVE, picc_cmd_buffer, 4, &response_data_n, &response_data_n_bits);
-  if (response_data)
+
+  if (response_data != NULL)
   {
+    if (response_data_n_bits == 4)
+    {
+      if (response_data != MF_ACK))
+      {
+        printf("PICC responded with NAK when trying to read data!\n");
+        return;
+      }
+    }
+
+    // If it's not NAK then it's most probably the actual data.
     if (response_data_n == 18)
     {
       // Copy the actual data bytes but not the CRC bytes.
@@ -605,19 +625,41 @@ void rc522_write_picc_data(uint8_t block_address, uint8_t buffer[18])
 
   // Send the command to PICC.
   response_data = rc522_picc_write(RC522_CMD_TRANSCEIVE, picc_cmd_buffer, 4, &response_data_n, &response_data_n_bits);
+
   // Here you can get a response of 12 bits and I think that's a 'fuck off' response.
   printf("--------   %d\n", response_data_n_bits);
-  if (response_data)
+
+  if (response_data != NULL)
   {
+    if (response_data_n_bits == 4)
+    {
+      if (response_data != MF_ACK))
+      {
+        printf("PICC responded with NAK when trying to write data!\n");
+        return;
+      }
+    }
+
     free(response_data);
   }
 
   // We always write 16 bytes. No other way to do a write.
   (void)rc522_calculate_crc(buffer, 16, &picc_cmd_buffer[16]);
   response_data = rc522_picc_write(RC522_CMD_TRANSCEIVE, buffer, 16, &response_data_n, &response_data_n_bits);
+
   printf("--------   %d\n", response_data_n_bits);
-  if (response_data)
+
+  if (response_data != NULL)
   {
+    if (response_data_n_bits == 4)
+    {
+      if (response_data != MF_ACK))
+      {
+        printf("PICC responded with NAK when trying to write data!\n");
+        return;
+      }
+    }
+
     free(response_data);
   }
 
