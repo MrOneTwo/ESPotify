@@ -592,7 +592,7 @@ void rc522_read_picc_data(uint8_t block_address, uint8_t buffer[16])
   {
     if (response_data_n_bits == 4)
     {
-      if (response_data != MF_ACK))
+      if (response_data[0] != MF_ACK)
       {
         printf("PICC responded with NAK when trying to read data!\n");
         return;
@@ -633,7 +633,7 @@ void rc522_write_picc_data(uint8_t block_address, uint8_t buffer[18])
   {
     if (response_data_n_bits == 4)
     {
-      if (response_data != MF_ACK))
+      if (response_data[0] != MF_ACK)
       {
         printf("PICC responded with NAK when trying to write data!\n");
         return;
@@ -653,7 +653,7 @@ void rc522_write_picc_data(uint8_t block_address, uint8_t buffer[18])
   {
     if (response_data_n_bits == 4)
     {
-      if (response_data != MF_ACK))
+      if (response_data[0] != MF_ACK)
       {
         printf("PICC responded with NAK when trying to write data!\n");
         return;
