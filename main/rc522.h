@@ -127,11 +127,6 @@ esp_err_t rc522_clear_bitmask(uint8_t addr, uint8_t mask);
 esp_err_t rc522_antenna_on();
 
 /*
- * Use the RC522 for CRC calculation.
- */
-uint8_t* rc522_calculate_crc(uint8_t *data, uint8_t data_size, uint8_t* crc_buf);
-
-/*
  * Send a command to PICC (saved in data buffer). The cmd is usually RC522_CMD_TRANSCEIVE.
  *
  * This function returns both: response's size in bytes and in bits. That's because it's possible
@@ -144,17 +139,6 @@ void rc522_picc_write(rc522_commands_e cmd, uint8_t* data, uint8_t data_size, re
  */
 status_e rc522_picc_reqa_or_wupa(uint8_t reqa_or_wupa);
 
-/*
- * This function tries to read the entire UID from the PICC. This is way more complicated than
- * one might expect, mostly because of different UID lengths (4, 7, 10 bytes) and a possiblity of
- * receiving partial byte.
- *
- * This function is a recursive function which tries to handle all the cascading levels of reading
- * UID into a global variable.
- *
- * Returns SUCCESS if a full UID has been read.
- */
-status_e rc522_anti_collision(uint8_t cascade_level);
 
 /*
  * This wraps the rc522_anti_collision function.

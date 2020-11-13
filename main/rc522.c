@@ -15,7 +15,28 @@
 
 static spi_device_handle_t* rc522_spi = NULL;
 static esp_timer_handle_t rc522_timer;
+
 static bool rc522_timer_running = false;
+
+//
+// Functions that communicate with RC522.
+//
+
+/*
+ */
+static uint8_t* rc522_calculate_crc(uint8_t *data, uint8_t data_size, uint8_t* crc_buf);
+
+/*
+ * This function tries to read the entire UID from the PICC. This is way more complicated than
+ * one might expect, mostly because of different UID lengths (4, 7, 10 bytes) and a possiblity of
+ * receiving partial byte.
+ *
+ * This function is a recursive function which tries to handle all the cascading levels of reading
+ * UID into a global variable.
+ *
+ * Returns SUCCESS if a full UID has been read.
+ */
+status_e rc522_anti_collision(uint8_t cascade_level);
 
 
 typedef struct picc_t {
@@ -96,7 +117,9 @@ esp_err_t rc522_write(uint8_t addr, uint8_t val)
   return rc522_write_n(addr, 1, &val);
 }
 
-/* Returns pointer to dynamically allocated array of N places. */
+/*
+ * Returns pointer to dynamically allocated array of N places.
+ */
 uint8_t* rc522_read_n(uint8_t addr, uint8_t n)
 {
   if (n <= 0) return NULL;
@@ -160,7 +183,7 @@ esp_err_t rc522_antenna_on()
 }
 
 /* Returns pointer to dynamically allocated array of two element */
-uint8_t* rc522_calculate_crc(uint8_t *data, uint8_t data_size, uint8_t* crc_buf)
+static uint8_t* rc522_calculate_crc(uint8_t *data, uint8_t data_size, uint8_t* crc_buf)
 {
   // 0x04 = CalcCRC command is active and all data is processed.
   rc522_clear_bitmask(RC522_REG_DIV_IRQ, 0x04);
