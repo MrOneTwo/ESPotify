@@ -336,8 +336,9 @@ status_e rc522_anti_collision(uint8_t cascade_level)
   uint8_t res_n;
   uint32_t res_n_bits = 0;
 
-  // 1. Build an a SELECTION/ANTI COLLISION request.
+  // 1. Build an a ANTI COLLISION command.
 
+  // Anti collision commands always have [1] == 0x20.
   // Set NVB. First anti collision round sets the NVB to 0x20.
   // After that NVB should be increased by UID bits count that were already
   // fetched. Those become a search criteria for fetching the rest of the UID.
@@ -364,7 +365,7 @@ status_e rc522_anti_collision(uint8_t cascade_level)
     // TODO(michalc): should never happen.
   }
 
-  // 2. Send the ANTI COLLISION request.
+  // 2. Send the ANTI COLLISION command.
 
   // Sets StartSend bit to 0, all bits are valid.
   rc522_write(RC522_REG_BIT_FRAMING, 0x00);
@@ -376,7 +377,7 @@ status_e rc522_anti_collision(uint8_t cascade_level)
     return FAILURE;
   }
 
-  // 3. Handle the ANTI COLLISION request response.
+  // 3. Handle the ANTI COLLISION command response.
 
   // Check the BCC byte (XORed UID bytes).
   if (res_n != 5)
@@ -408,7 +409,7 @@ status_e rc522_anti_collision(uint8_t cascade_level)
     picc.uid_hot = 1;
   }
 
-  // 5. Send a SELECTION request.
+  // 5. Send a SELECT command.
 
   if ((cascade_level == 1) || (cascade_level == 2) || (cascade_level == 3))
   {
@@ -645,21 +646,18 @@ void tag_handler(uint8_t* serial_no)
   }
 }
 
-void rc522_authenticate(uint8_t cmd,  ///< PICC_CMD_MF_AUTH_KEY_A or PICC_CMD_MF_AUTH_KEY_B
-                        uint8_t block_address,  ///< The block number. See numbering in the comments in the .h file.
+void rc522_authenticate(uint8_t cmd_auth_key_a_or_b,
+                        uint8_t block_address,
                         uint8_t key[MF_KEY_SIZE])
 {
   uint8_t response_data_size;
   uint32_t response_data_size_bits;
 
   uint8_t picc_cmd_buffer[12];
-  picc_cmd_buffer[0] = cmd;
+  picc_cmd_buffer[0] = cmd_auth_key_a_or_b;
   picc_cmd_buffer[1] = block_address;
 
-  for (uint8_t i = 0; i < MF_KEY_SIZE; i++)
-  {
-    picc_cmd_buffer[2 + i] = key[i];
-  }
+  memcpy((void*)(picc_cmd_buffer + 2), key, MF_KEY_SIZE);
   // Use the last uid uint8_ts as specified in http://cache.nxp.com/documents/application_note/AN10927.pdf
   // section 3.2.5 "MIFARE Classic Authentication".
   // The only missed case is the MF1Sxxxx shortcut activation,
