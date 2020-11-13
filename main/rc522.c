@@ -320,6 +320,10 @@ void rc522_picc_write(rc522_commands_e cmd,
             response->data[i] = rc522_read(RC522_REG_FIFO_DATA);
           }
         }
+        else
+        {
+          response->data = NULL;
+        }
       }
     }
   }
@@ -515,7 +519,8 @@ uint8_t* rc522_get_picc_id()
   // If you use WUPA you'll be able to wake up the PICC every time. That means the entire process
   // below will succeed every time.
   status_e picc_present = rc522_picc_reqa_or_wupa(PICC_CMD_WUPA);
-  static uint8_t sector = 0;
+  static uint8_t block = 4 * 2 - 2;
+  static uint8_t temp = 0;
 
   if (picc_present == SUCCESS)
   {
@@ -527,20 +532,18 @@ uint8_t* rc522_get_picc_id()
     {
       uint8_t key[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
       // Authenticate sector access.
-      rc522_authenticate(PICC_CMD_MF_AUTH_KEY_A, 0x2, key);
+      rc522_authenticate(PICC_CMD_MF_AUTH_KEY_A, block, key);
 
       uint8_t data[18] = {0x4, 0x3, 0x2, 0x1};
-      // if (temp++ % 2)
-      // {
-      //   printf("WRITING!\n");
-      //   rc522_write_picc_data(0x0, data);
-      // }
-      // else
+      if (temp++ % 2)
       {
-        const uint8_t block = 0x3 + 0x4 * sector;
+        printf("WRITING!\n");
+        rc522_write_picc_data(block, data);
+      }
+      else
+      {
         printf("READING %d\n", block);
         rc522_read_picc_data(block, data);
-        if (++sector > 15) sector = 0;
         printf("DATA: %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x\n",
           data[0],
           data[1],
@@ -638,7 +641,7 @@ void rc522_write_picc_data(uint8_t block_address, uint8_t buffer[18])
   rc522_picc_write(RC522_CMD_TRANSCEIVE, picc_cmd_buffer, 4, &resp);
 
   // Here you can get a response of 12 bits and I think that's a 'fuck off' response.
-  printf("--------   %d\n", resp.size_bytes);
+  printf("--------   %d %d\n", resp.size_bytes, resp.size_bits);
 
   if (resp.data != NULL)
   {
@@ -649,6 +652,10 @@ void rc522_write_picc_data(uint8_t block_address, uint8_t buffer[18])
         printf("PICC responded with NAK (%x) when trying to write data!\n", resp.data[0]);
         return;
       }
+      else
+      {
+        printf("PICC responded with ACK (%x) when trying to write data!\n", resp.data[0]);
+      }
     }
 
     free(resp.data);
@@ -656,9 +663,9 @@ void rc522_write_picc_data(uint8_t block_address, uint8_t buffer[18])
 
   // We always write 16 bytes. No other way to do a write.
   (void)rc522_calculate_crc(buffer, 16, &picc_cmd_buffer[16]);
-  rc522_picc_write(RC522_CMD_TRANSCEIVE, buffer, 16, &resp);
+  rc522_picc_write(RC522_CMD_TRANSCEIVE, buffer, 18, &resp);
 
-  printf("--------   %d\n", resp.size_bits);
+  printf("--------  %p %d %d\n", resp.data, resp.size_bytes, resp.size_bits);
 
   if (resp.data != NULL)
   {
@@ -668,6 +675,10 @@ void rc522_write_picc_data(uint8_t block_address, uint8_t buffer[18])
       {
         printf("PICC responded with NAK (%x) when trying to write data!\n", resp.data[0]);
         return;
+      }
+      else
+      {
+        printf("PICC responded with ACK (%x) when trying to write data!\n", resp.data[0]);
       }
     }
 
