@@ -105,14 +105,6 @@ typedef struct response_t {
 
 typedef void(*rc522_tag_callback_t)(uint8_t*);
 
-// TODO(michalc): throw this structure out.
-typedef struct {
-    int miso_io;
-    int mosi_io;
-    int sck_io;
-    int sda_io;
-    rc522_tag_callback_t callback;
-} rc522_start_args_t;
 
 esp_err_t rc522_init(spi_device_handle_t* spi);
 
