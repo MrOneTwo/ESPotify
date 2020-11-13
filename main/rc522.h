@@ -142,7 +142,7 @@ void rc522_picc_write(rc522_commands_e cmd, uint8_t* data, uint8_t data_size, re
 /*
  * This function is for waking up a PICC. It transmits the REQA command.
  */
-uint8_t rc522_picc_reqa_or_wupa(uint8_t reqa_or_wupa);
+status_e rc522_picc_reqa_or_wupa(uint8_t reqa_or_wupa);
 
 /*
  * This function tries to read the entire UID from the PICC. This is way more complicated than

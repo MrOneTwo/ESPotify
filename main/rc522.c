@@ -307,9 +307,9 @@ void rc522_picc_write(rc522_commands_e cmd,
   return;
 }
 
-uint8_t rc522_picc_reqa_or_wupa(uint8_t reqa_or_wupa)
+status_e rc522_picc_reqa_or_wupa(uint8_t reqa_or_wupa)
 {
-  uint8_t status = 0;
+  status_e status = FAILURE;
   // Set a short frame format of 7 bits. That means that only 7 bits of the last byte,
   // in this case the only byte will be transmitted to the PICC.
   rc522_write(RC522_REG_BIT_FRAMING, 0x07);
@@ -320,17 +320,15 @@ uint8_t rc522_picc_reqa_or_wupa(uint8_t reqa_or_wupa)
   // ATQA is exactly 2 bytes.
   rc522_picc_write(RC522_CMD_TRANSCEIVE, picc_cmd_buffer, 1, &resp);
 
-  if (resp.data != NULL)
-  {
-    free(resp.data);
-    resp.size_bytes = 0;
-    resp.size_bits = 0;
-  }
-
   if(resp.size_bytes == 2 && resp.size_bits == 16)
   {
     // A PICC has responded to REQA.
-    status = 1;
+    status = SUCCESS;
+  }
+
+  if (resp.data != NULL)
+  {
+    free(resp.data);
   }
 
   return status;
@@ -496,10 +494,10 @@ uint8_t* rc522_get_picc_id()
   // move it close to reader again.
   // If you use WUPA you'll be able to wake up the PICC every time. That means the entire process
   // below will succeed every time.
-  uint8_t picc_present = rc522_picc_reqa_or_wupa(PICC_CMD_WUPA);
+  status_e picc_present = rc522_picc_reqa_or_wupa(PICC_CMD_WUPA);
   static uint8_t sector = 0;
 
-  if (picc_present)
+  if (picc_present == SUCCESS)
   {
     // The rc522_anti_collision is a recursive function. It stores the full UID in the global
     // picc variable.
