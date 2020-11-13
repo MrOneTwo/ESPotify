@@ -24,7 +24,7 @@ static bool rc522_timer_running = false;
 
 /*
  */
-static uint8_t* rc522_calculate_crc(uint8_t *data, uint8_t data_size, uint8_t* crc_buf);
+static void rc522_calculate_crc(uint8_t *data, uint8_t data_size, uint8_t* crc_buf);
 
 /*
  * This function tries to read the entire UID from the PICC. This is way more complicated than
@@ -183,7 +183,7 @@ esp_err_t rc522_antenna_on()
 }
 
 /* Returns pointer to dynamically allocated array of two element */
-static uint8_t* rc522_calculate_crc(uint8_t *data, uint8_t data_size, uint8_t* crc_buf)
+static void rc522_calculate_crc(uint8_t *data, uint8_t data_size, uint8_t* crc_buf)
 {
   // 0x04 = CalcCRC command is active and all data is processed.
   rc522_clear_bitmask(RC522_REG_DIV_IRQ, 0x04);
@@ -203,7 +203,7 @@ static uint8_t* rc522_calculate_crc(uint8_t *data, uint8_t data_size, uint8_t* c
     nn = rc522_read(RC522_REG_DIV_IRQ);
     i--;
 
-    if (!i)
+    if (i == 0)
     {
       break;
     }
@@ -217,8 +217,6 @@ static uint8_t* rc522_calculate_crc(uint8_t *data, uint8_t data_size, uint8_t* c
 
   crc_buf[0] = rc522_read(RC522_REG_CRC_RESULT_2);
   crc_buf[1] = rc522_read(RC522_REG_CRC_RESULT_1);
-
-  return crc_buf;
 }
 
 void rc522_picc_write(rc522_commands_e cmd,
@@ -448,7 +446,7 @@ static status_e rc522_anti_collision(uint8_t cascade_level)
     // BCC and the CRC is transmitted only if we know all the UID bits of the current cascade level.
     anticollision[6] = anticollision[2] ^ anticollision[3] ^ anticollision[4] ^ anticollision[5];
     anticollision_size = 7;
-    (void)rc522_calculate_crc(anticollision, 7, &anticollision[7]);
+    rc522_calculate_crc(anticollision, 7, &anticollision[7]);
     anticollision_size = 9;
 
     free(resp.data);
@@ -574,7 +572,7 @@ uint8_t* rc522_get_picc_id()
     // Halting and clearing the MFCrypto1On bit should be done after readings data.
     // After halting it needs to be WUPA (waken up).
     uint8_t picc_cmd_buffer[] = {PICC_CMD_HALTA, 0x00, 0x00, 0x00 };
-    (void)rc522_calculate_crc(picc_cmd_buffer, 2, &picc_cmd_buffer[2]);
+    rc522_calculate_crc(picc_cmd_buffer, 2, &picc_cmd_buffer[2]);
 
     rc522_picc_write(RC522_CMD_TRANSCEIVE, picc_cmd_buffer, 4, &resp);
     // Check if cascade bit is set. If so then the UID isn't fully fetched yet.
@@ -599,7 +597,7 @@ void rc522_read_picc_data(uint8_t block_address, uint8_t buffer[16])
   picc_cmd_buffer[0] = PICC_CMD_MF_READ;
   picc_cmd_buffer[1] = block_address;
   // Calculate the CRC on the RC522 side.
-  (void)rc522_calculate_crc(picc_cmd_buffer, 2, &picc_cmd_buffer[2]);
+  rc522_calculate_crc(picc_cmd_buffer, 2, &picc_cmd_buffer[2]);
 
   // Send the command to PICC.
   rc522_picc_write(RC522_CMD_TRANSCEIVE, picc_cmd_buffer, 4, &resp);
@@ -635,7 +633,7 @@ void rc522_write_picc_data(uint8_t block_address, uint8_t buffer[18])
   picc_cmd_buffer[0] = PICC_CMD_MF_WRITE;
   picc_cmd_buffer[1] = block_address;  // block address.
   // Calculate the CRC on the RC522 side.
-  (void)rc522_calculate_crc(picc_cmd_buffer, 2, &picc_cmd_buffer[2]);
+  rc522_calculate_crc(picc_cmd_buffer, 2, &picc_cmd_buffer[2]);
 
   // Send the command to PICC.
   rc522_picc_write(RC522_CMD_TRANSCEIVE, picc_cmd_buffer, 4, &resp);
@@ -661,8 +659,8 @@ void rc522_write_picc_data(uint8_t block_address, uint8_t buffer[18])
     free(resp.data);
   }
 
-  // We always write 16 bytes. No other way to do a write.
-  (void)rc522_calculate_crc(buffer, 16, &picc_cmd_buffer[16]);
+  // We always write 16 data + 2 CRC bytes. No other way to do a write.
+  rc522_calculate_crc(buffer, 16, &buffer[16]);
   rc522_picc_write(RC522_CMD_TRANSCEIVE, buffer, 18, &resp);
 
   printf("--------  %p %d %d\n", resp.data, resp.size_bytes, resp.size_bits);
