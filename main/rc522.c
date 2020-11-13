@@ -76,10 +76,7 @@ esp_err_t rc522_write_n(uint8_t addr, uint8_t data_size, uint8_t *data)
   buffer[0] = (addr << 1) & 0x7E;
 
   // Copy data from data to buffer, moved by one byte to make space for the address.
-  for (uint8_t i = 1; i <= data_size; i++)
-  {
-    buffer[i] = data[i - 1];
-  }
+  memcpy(buffer + 1, data, data_size);
 
   spi_transaction_t t = {};
 
