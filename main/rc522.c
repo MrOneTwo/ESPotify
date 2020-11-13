@@ -36,7 +36,7 @@ static uint8_t* rc522_calculate_crc(uint8_t *data, uint8_t data_size, uint8_t* c
  *
  * Returns SUCCESS if a full UID has been read.
  */
-status_e rc522_anti_collision(uint8_t cascade_level);
+static status_e rc522_anti_collision(uint8_t cascade_level);
 
 
 typedef struct picc_t {
@@ -355,7 +355,7 @@ status_e rc522_picc_reqa_or_wupa(uint8_t reqa_or_wupa)
 }
 
 // TODO(michalc): return value should reflect success which depends on the cascade_level.
-status_e rc522_anti_collision(uint8_t cascade_level)
+static status_e rc522_anti_collision(uint8_t cascade_level)
 {
   assert(cascade_level > 0);
   assert(cascade_level <= 3);
