@@ -13,7 +13,7 @@
 #include "soc/gpio_struct.h"
 
 
-static spi_device_handle_t* rc522_spi = NULL;
+static spi_device_handle_t rc522_spi;
 static esp_timer_handle_t rc522_timer;
 
 static bool rc522_timer_running = false;
@@ -68,9 +68,9 @@ typedef struct picc_t {
 } picc_t;
 
 picc_t picc;
-QueueHandle_t* queue;
+QueueHandle_t queue;
 
-esp_err_t rc522_init(spi_device_handle_t* spi, QueueHandle_t* q)
+esp_err_t rc522_init(spi_device_handle_t spi, QueueHandle_t q)
 {
   queue = q;
   rc522_spi = spi;
@@ -115,7 +115,7 @@ esp_err_t rc522_write_n(uint8_t addr, uint8_t data_size, uint8_t *data)
   t.length = 8 * (data_size + 1);
   t.tx_buffer = buffer;
 
-  esp_err_t ret = spi_device_transmit(*rc522_spi, &t);
+  esp_err_t ret = spi_device_transmit(rc522_spi, &t);
 
   free(buffer);
 
@@ -145,7 +145,7 @@ uint8_t* rc522_read_n(uint8_t addr, uint8_t n)
   t.rxlength = 8 * n;
   t.rx_buffer = buffer;
 
-  esp_err_t ret = spi_device_transmit(*rc522_spi, &t);
+  esp_err_t ret = spi_device_transmit(rc522_spi, &t);
   assert(ret == ESP_OK);
 
   return buffer;

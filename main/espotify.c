@@ -323,8 +323,8 @@ void app_main(void)
   QueueHandle_t queue = xQueueCreate(queue_length, queue_element_size);
 
   hardware_init();
-  spi_device_handle_t* spi = hardware_get_spi_handle();
-  rfid_init(spi, &queue);
+  spi_device_handle_t spi = hardware_get_spi_handle();
+  rfid_init(spi, queue);
 
   wifi_init_sta();
 

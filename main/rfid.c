@@ -3,9 +3,9 @@
 #include "shared.h"
 #include "rc522.h"
 
-QueueHandle_t* queue;
+QueueHandle_t queue;
 
-void rfid_init(spi_device_handle_t* spi, QueueHandle_t* q)
+void rfid_init(spi_device_handle_t spi, QueueHandle_t q)
 {
   queue = q;
   rc522_init(spi, q);
