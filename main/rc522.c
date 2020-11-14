@@ -7,10 +7,10 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_system.h"
-#include "driver/spi_master.h"
-#include "soc/gpio_struct.h"
-#include "driver/gpio.h"
 #include "esp_timer.h"
+#include "driver/spi_master.h"
+#include "driver/gpio.h"
+#include "soc/gpio_struct.h"
 
 
 static spi_device_handle_t* rc522_spi = NULL;
