@@ -328,7 +328,7 @@ void app_main(void)
 
   wifi_init_sta();
 
-  spotify_init(&spotify, &queue);
+  spotify_init(&spotify, queue);
 
   rfid_start_scanning();
 
