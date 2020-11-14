@@ -126,16 +126,12 @@ esp_err_t rc522_antenna_on();
  */
 void rc522_picc_write(rc522_commands_e cmd, uint8_t* data, uint8_t data_size, response_t* response);
 
-/*
- * This function is for waking up a PICC. It transmits the REQA command.
- */
-status_e rc522_picc_reqa_or_wupa(uint8_t reqa_or_wupa);
 
 
 /*
  * This wraps the rc522_anti_collision function.
  */
-uint8_t* rc522_get_picc_id();
+status_e rc522_get_picc_id();
 
 void rc522_read_picc_data(uint8_t block_adress, uint8_t buffer[16]);
 void rc522_write_picc_data(uint8_t block_address, uint8_t buffer[18]);

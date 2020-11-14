@@ -93,7 +93,7 @@ void rfid_init()
     case ESP_ERR_INVALID_ARG:
       ESP_ERROR_CHECK(ret); break;
     case ESP_ERR_INVALID_STATE:
-      // NOTE(michalc): is it ok to just skip when it's already intilized?
+      ESP_ERROR_CHECK(ret); break;
       break;
     case ESP_ERR_NO_MEM:
       ESP_ERROR_CHECK(ret); break;

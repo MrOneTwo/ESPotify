@@ -38,6 +38,13 @@ static void rc522_calculate_crc(uint8_t *data, uint8_t data_size, uint8_t* crc_b
  */
 static status_e rc522_anti_collision(uint8_t cascade_level);
 
+/*
+ * This function is for waking up a PICC. It transmits the REQA command.
+ */
+static status_e rc522_picc_reqa_or_wupa(uint8_t reqa_or_wupa);
+
+static status_e rc522_picc_halta(uint8_t halta);
+
 
 typedef struct picc_t {
   uint8_t uid_hot;
@@ -329,7 +336,7 @@ void rc522_picc_write(rc522_commands_e cmd,
   return;
 }
 
-status_e rc522_picc_reqa_or_wupa(uint8_t reqa_or_wupa)
+static status_e rc522_picc_reqa_or_wupa(uint8_t reqa_or_wupa)
 {
   status_e status = FAILURE;
   // Set a short frame format of 7 bits. That means that only 7 bits of the last byte,
@@ -354,6 +361,25 @@ status_e rc522_picc_reqa_or_wupa(uint8_t reqa_or_wupa)
   }
 
   return status;
+}
+
+static status_e rc522_picc_halta(uint8_t halta)
+{
+  response_t resp = {};
+
+  // Halting and clearing the MFCrypto1On bit should be done after readings data.
+  // After halting it needs to be WUPA (waken up).
+  uint8_t picc_cmd_buffer[] = {halta, 0x00, 0x00, 0x00 };
+  rc522_calculate_crc(picc_cmd_buffer, 2, &picc_cmd_buffer[2]);
+
+  rc522_picc_write(RC522_CMD_TRANSCEIVE, picc_cmd_buffer, 4, &resp);
+  // Check if cascade bit is set. If so then the UID isn't fully fetched yet.
+  if (resp.data != NULL)
+  {
+    free(resp.data);
+  }
+
+  return SUCCESS;
 }
 
 // TODO(michalc): return value should reflect success which depends on the cascade_level.
@@ -488,7 +514,7 @@ static status_e rc522_anti_collision(uint8_t cascade_level)
 }
 
 // TODO(michalc): this could be redesigned to be a recursive function to fetch the complete UID.
-uint8_t* rc522_get_picc_id()
+status_e rc522_get_picc_id()
 {
   // An example sequence of establishing the full UID.
   //
@@ -509,7 +535,6 @@ uint8_t* rc522_get_picc_id()
   // CT  => Cascade tag byte (88), signals that the UID is not complete yet
   // BCC => Checkbyte, calculated as exclusive-or over 4 previous bytes
 
-  response_t resp = {};
 
   // If you use REQA you wan't be able to wake the PICC up after doing HALTA at the end of this
   // function. You'll have to move the PICC away from the reader to reset it to IDLE and then
@@ -517,65 +542,8 @@ uint8_t* rc522_get_picc_id()
   // If you use WUPA you'll be able to wake up the PICC every time. That means the entire process
   // below will succeed every time.
   status_e picc_present = rc522_picc_reqa_or_wupa(PICC_CMD_WUPA);
-  static uint8_t block = 4 * 2 - 2;
-  static uint8_t temp = 0;
 
-  if (picc_present == SUCCESS)
-  {
-    // The rc522_anti_collision is a recursive function. It stores the full UID in the global
-    // picc variable.
-    status_e status = rc522_anti_collision(1);
-
-    if (status == SUCCESS)
-    {
-      uint8_t key[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
-      // Authenticate sector access.
-      rc522_authenticate(PICC_CMD_MF_AUTH_KEY_A, block, key);
-
-      uint8_t data[18] = {
-        0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7,
-        0x8, 0x9, 0xA, 0xB, 0xC, 0xD, 0xE, 0xF
-      };
-
-      if (temp++ % 2)
-      {
-        printf("WRITING!\n");
-        rc522_write_picc_data(block, data);
-      }
-      else
-      {
-        printf("READING %d\n", block);
-        rc522_read_picc_data(block, data);
-        printf("BLOCK %d DATA: %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x\n", block,
-          data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7],
-          data[8], data[9], data[10], data[11], data[12], data[13], data[14], data[15]
-        );
-      }
-    }
-    else
-    {
-      memset((void*)&picc, 0, sizeof(picc));
-      printf("FAILED TO GET A FULL UID...\n");
-    }
-
-
-    // Halting and clearing the MFCrypto1On bit should be done after readings data.
-    // After halting it needs to be WUPA (waken up).
-    uint8_t picc_cmd_buffer[] = {PICC_CMD_HALTA, 0x00, 0x00, 0x00 };
-    rc522_calculate_crc(picc_cmd_buffer, 2, &picc_cmd_buffer[2]);
-
-    rc522_picc_write(RC522_CMD_TRANSCEIVE, picc_cmd_buffer, 4, &resp);
-    // Check if cascade bit is set. If so then the UID isn't fully fetched yet.
-    if (resp.data != NULL)
-    {
-      free(resp.data);
-    }
-
-    // Clear the MFCrypto1On bit.
-    rc522_clear_bitmask(RC522_REG_STATUS_2, 0x08);
-  }
-
-  return NULL;
+  return picc_present;
 }
 
 void rc522_read_picc_data(uint8_t block_address, uint8_t buffer[16])
@@ -611,6 +579,10 @@ void rc522_read_picc_data(uint8_t block_address, uint8_t buffer[16])
     }
     free(resp.data);
   }
+  else
+  {
+    printf("No data returned when reading PICC.\n");
+  }
 
   return;
 }
@@ -634,12 +606,12 @@ void rc522_write_picc_data(uint8_t block_address, uint8_t buffer[18])
     {
       if (resp.data[0] != MF_ACK)
       {
-        // printf("PICC responded with NAK (%x) when trying to write data!\n", resp.data[0]);
+        printf("PICC responded with NAK (%x) when trying to write data!\n", resp.data[0]);
         return;
       }
       else
       {
-        // printf("PICC responded with ACK (%x) when trying to write data!\n", resp.data[0]);
+        printf("PICC responded with ACK (%x) when trying to write data!\n", resp.data[0]);
       }
     }
 
@@ -656,12 +628,12 @@ void rc522_write_picc_data(uint8_t block_address, uint8_t buffer[18])
     {
       if (resp.data[0] != MF_ACK)
       {
-        // printf("PICC responded with NAK (%x) when trying to write data!\n", resp.data[0]);
+        printf("PICC responded with NAK (%x) when trying to write data!\n", resp.data[0]);
         return;
       }
       else
       {
-        // printf("PICC responded with ACK (%x) when trying to write data!\n", resp.data[0]);
+        printf("PICC responded with ACK (%x) when trying to write data!\n", resp.data[0]);
       }
     }
 
@@ -673,7 +645,49 @@ void rc522_write_picc_data(uint8_t block_address, uint8_t buffer[18])
 
 static void rc522_timer_callback(void* arg)
 {
-  rc522_get_picc_id();
+  status_e picc_present = rc522_get_picc_id();
+
+  const uint8_t sector = 2;
+  static uint8_t block = 4 * sector - 4;
+
+  if (picc_present == SUCCESS)
+  {
+    // The rc522_anti_collision is a recursive function. It stores the full UID in the global
+    // picc variable.
+    status_e status = rc522_anti_collision(1);
+
+    if (status == SUCCESS)
+    {
+      uint8_t key[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+      // Authenticate sector access.
+      rc522_authenticate(PICC_CMD_MF_AUTH_KEY_A, block, key);
+
+      uint8_t data[18] = {
+        0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7,
+        0x8, 0x9, 0xA, 0xB, 0xC, 0xD, 0xE, 0xF
+      };
+
+      {
+        printf("READING %d\n", block);
+        rc522_read_picc_data(block, data);
+        printf("BLOCK %d DATA: %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x\n", block,
+          data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7],
+          data[8], data[9], data[10], data[11], data[12], data[13], data[14], data[15]
+        );
+        block++;
+        if (block > 7) block = 0;
+      }
+    }
+    else
+    {
+      memset((void*)&picc, 0, sizeof(picc));
+      printf("FAILED TO GET A FULL UID...\n");
+    }
+
+    rc522_picc_halta(PICC_CMD_HALTA);
+    // Clear the MFCrypto1On bit.
+    rc522_clear_bitmask(RC522_REG_STATUS_2, 0x08);
+  }
 
   rc522_tag_callback_t cb = (rc522_tag_callback_t) arg;
   cb(picc.uid);
