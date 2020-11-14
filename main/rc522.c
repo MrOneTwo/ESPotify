@@ -16,8 +16,6 @@
 static spi_device_handle_t rc522_spi;
 static esp_timer_handle_t rc522_timer;
 
-static bool rc522_timer_running = false;
-
 //
 // Functions that communicate with RC522.
 //
@@ -736,16 +734,7 @@ esp_err_t rc522_start_scanning()
     return ret;
   }
 
-  return rc522_resume();
+  // return rc522_resume();
+  return ESP_OK;
 }
 
-esp_err_t rc522_resume()
-{
-  // 125000 microseconds means 8Hz.
-  return rc522_timer_running ? ESP_OK : esp_timer_start_periodic(rc522_timer, 125000);
-}
-
-esp_err_t rc522_pause()
-{
-  return ! rc522_timer_running ? ESP_OK : esp_timer_stop(rc522_timer);
-}

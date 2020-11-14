@@ -327,6 +327,7 @@ void app_main(void)
   spotify_init(&spotify);
 
   tasks_init();
+  tasks_start();
 
 
   while (1)
