@@ -195,6 +195,7 @@ static esp_err_t spotify_http_event_handler(esp_http_client_event_t *evt)
       // Check if there is data present in the response_buf.
       if (response_buf_tail)
       {
+        // cJSON_Parse mallocs memory! Remember to run cJSON_Delete.
         cJSON* response_json = cJSON_Parse(response_buf);
 
         cJSON* access_token = cJSON_GetObjectItem(response_json, "access_token");
