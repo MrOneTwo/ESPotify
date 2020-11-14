@@ -27,18 +27,6 @@ static bool rc522_timer_running = false;
 static void rc522_calculate_crc(uint8_t *data, uint8_t data_size, uint8_t* crc_buf);
 
 /*
- * This function tries to read the entire UID from the PICC. This is way more complicated than
- * one might expect, mostly because of different UID lengths (4, 7, 10 bytes) and a possiblity of
- * receiving partial byte.
- *
- * This function is a recursive function which tries to handle all the cascading levels of reading
- * UID into a global variable.
- *
- * Returns SUCCESS if a full UID has been read.
- */
-static status_e rc522_anti_collision(uint8_t cascade_level);
-
-/*
  * This function is for waking up a PICC. It transmits the REQA command.
  */
 static status_e rc522_picc_reqa_or_wupa(uint8_t reqa_or_wupa);
@@ -67,11 +55,9 @@ typedef struct picc_t {
 } picc_t;
 
 picc_t picc;
-QueueHandle_t queue;
 
-esp_err_t rc522_init(spi_device_handle_t spi, QueueHandle_t q)
+esp_err_t rc522_init(spi_device_handle_t spi)
 {
-  queue = q;
   rc522_spi = spi;
 
   // ---------- RW test ------------
@@ -385,7 +371,7 @@ status_e rc522_picc_halta(uint8_t halta)
 }
 
 // TODO(michalc): return value should reflect success which depends on the cascade_level.
-static status_e rc522_anti_collision(uint8_t cascade_level)
+status_e rc522_anti_collision(uint8_t cascade_level)
 {
   assert(cascade_level > 0);
   assert(cascade_level <= 3);

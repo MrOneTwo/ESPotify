@@ -10,15 +10,12 @@
 // This struct is available through extern in spotify.h.
 spotify_t spotify;
 spotify_playback_t spotify_playback;
-QueueHandle_t queue;
 
 static esp_err_t spotify_http_event_handler(esp_http_client_event_t *evt);
 
 
-void spotify_init(spotify_t* spotify, QueueHandle_t q)
+void spotify_init(spotify_t* spotify)
 {
-  queue = q;
-
   spotify->fresh = false;
   memset(spotify->client_id, 0, sizeof(spotify->client_id));
   memset(spotify->client_secret, 0, sizeof(spotify->client_secret));

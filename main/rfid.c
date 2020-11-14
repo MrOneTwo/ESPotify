@@ -6,12 +6,9 @@
 #include <string.h>
 
 
-QueueHandle_t queue;
-
-void rfid_init(spi_device_handle_t spi, QueueHandle_t q)
+void rfid_init(spi_device_handle_t spi)
 {
-  queue = q;
-  rc522_init(spi, q);
+  rc522_init(spi);
 }
 
 void rfid_start_scanning()

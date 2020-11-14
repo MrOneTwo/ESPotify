@@ -16,7 +16,7 @@
 #include "rc522.h"
 
 
-void rfid_init(spi_device_handle_t spi, QueueHandle_t q);
+void rfid_init(spi_device_handle_t spi);
 
 void rfid_start_scanning();
 

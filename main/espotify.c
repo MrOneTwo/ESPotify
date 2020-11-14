@@ -16,9 +16,10 @@
 #include "cJSON.h"
 
 #include "spotify.h"
-#include "rfid.h"
 #include "shared.h"
+#include "rc522.h"
 #include "hardware.h"
+#include "tasks.h"
 
 #define MIN(a, b) (a <= b ? a : b)
 
@@ -317,47 +318,40 @@ void app_main(void)
   }
   ESP_ERROR_CHECK(ret);
 
-  // Queue to communicate Spotify module with RFID module.
-  const uint8_t queue_length = 5U;
-  const uint8_t queue_element_size = 32;
-  QueueHandle_t queue = xQueueCreate(queue_length, queue_element_size);
-
   hardware_init();
   spi_device_handle_t spi = hardware_get_spi_handle();
-  rfid_init(spi, queue);
+  rc522_init(spi);
 
   wifi_init_sta();
 
-  spotify_init(&spotify, queue);
+  spotify_init(&spotify);
 
-  rfid_start_scanning();
+  tasks_init();
+
 
   while (1)
   {
-    if (!spotify.fresh)
-    {
-      ESP_LOGW(TAG, "Refreshing the access token");
-      spotify_refresh_access_token(&spotify);
-    }
-    spotify_query(&spotify);
+    // if (!spotify.fresh)
+    // {
+    //   ESP_LOGW(TAG, "Refreshing the access token");
+    //   spotify_refresh_access_token(&spotify);
+    // }
+    // spotify_query(&spotify);
 
-    // NOTE(michalc): the ESP_LOGI below flushes the output I think. That's why those prinfs fails
-    // without subsequent ESP_LOGI.
-    printf("Music playing: %s\n", spotify_playback.is_playing ? "YES" : "NO");
-    printf("Artist: %s\n", spotify_playback.artist);
-    printf("Song: %s\n", spotify_playback.song_title);
-    printf("Song ID: %s\n", spotify_playback.song_id);
+    // // NOTE(michalc): the ESP_LOGI below flushes the output I think. That's why those prinfs fails
+    // // without subsequent ESP_LOGI.
+    // printf("Music playing: %s\n", spotify_playback.is_playing ? "YES" : "NO");
+    // printf("Artist: %s\n", spotify_playback.artist);
+    // printf("Song: %s\n", spotify_playback.song_title);
+    // printf("Song ID: %s\n", spotify_playback.song_id);
 
-    vTaskDelay(500);
+    // vTaskDelay(500);
 
-    if (uxQueueMessagesWaiting(queue))
-    {
-      printf("Tag is there!");
-    }
     // spotify_enqueue_song(&spotify, "3yndKI4zWEyC36BQYrdKBA");
     // vTaskDelay(100);
     // spotify_next_song(&spotify);
 
+    printf("... main task is still here!\n");
     vTaskDelay(500);
   }
 
