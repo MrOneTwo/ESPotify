@@ -336,8 +336,13 @@ void app_main(void)
     printf("Artist: %s\n", spotify_playback.artist);
     printf("Song: %s\n", spotify_playback.song_title);
     printf("Song ID: %s\n", spotify_playback.song_id);
+
+    vTaskDelay(500);
+
     spotify_enqueue_song(&spotify, NULL);
-    vTaskDelay(1000);
+    spotify_next_song(&spotify);
+
+    vTaskDelay(500);
   }
 
   if (start_webserver() == NULL)

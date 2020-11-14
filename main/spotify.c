@@ -117,6 +117,32 @@ void spotify_enqueue_song(spotify_t* spotify, uint8_t song_id[24])
   }
 }
 
+void spotify_next_song(spotify_t* spotify)
+{
+  char access_token_header[280];
+  snprintf(access_token_header, 280, "Bearer %s", spotify->access_token);
+
+  // Modyfing the client here, which we assume is connected to the server.
+  const char* spotify_url = "https://api.spotify.com/v1/me/player/next";
+  esp_http_client_config_t config = {
+    .url = spotify_url,
+    .transport_type = HTTP_TRANSPORT_OVER_SSL,
+    .event_handler = spotify_http_event_handler,
+  };
+  context.client = esp_http_client_init(&config);
+
+  esp_http_client_set_header(context.client, "Authorization", access_token_header);
+  esp_http_client_set_method(context.client, HTTP_METHOD_POST);
+
+  esp_err_t err = esp_http_client_perform(context.client);
+
+  if (err == ESP_OK) {
+    ESP_LOGW(TAG, "Status = %d, content_length = %d",
+             esp_http_client_get_status_code(context.client),
+             esp_http_client_get_content_length(context.client));
+  }
+}
+
 static esp_err_t spotify_http_event_handler(esp_http_client_event_t *evt)
 {
   // TODO(michalc): the response_buf is pretty big... it would be better to put it on the heap.

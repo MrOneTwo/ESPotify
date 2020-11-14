@@ -32,4 +32,6 @@ void spotify_refresh_access_token(spotify_t* spotify);
 void spotify_enqueue_song(spotify_t* spotify, uint8_t song_id[24]);
 // https://api.spotify.com/v1/me/player/queue?uri=spotify:track:ID
 
+void spotify_next_song(spotify_t* spotify);
+
 #endif // SPOTIFY_H
