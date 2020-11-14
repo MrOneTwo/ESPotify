@@ -108,14 +108,3 @@ void rfid_init()
   rc522_init(&spi);
   rc522_start();
 }
-
-// void rfid_read()
-// {
-//   esp_err_t ret;
-//   spi_transaction_t t = {};
-//   t.length = 8;
-//   t.tx_buffer = &cmd;
-//   t.user = (void*)0;
-//   ret = spi_device_polling_transmit(spi, &t);
-//   ESP_ERROR_CHECK(ret);
-// }
