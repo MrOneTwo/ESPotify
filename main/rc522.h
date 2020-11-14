@@ -149,6 +149,6 @@ esp_err_t rc522_pause();
  * Authenticate a sector access. A sector can be protected with a key A or key B.
  * A proper key needs to be used. Default factory key is {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}.
  */
-void rc522_authenticate(uint8_t cmd, uint8_t block_address, uint8_t key[MF_KEY_SIZE]);
+void rc522_authenticate(uint8_t cmd, uint8_t block_address, const uint8_t key[MF_KEY_SIZE]);
 
 #endif // RC522_H

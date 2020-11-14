@@ -663,7 +663,7 @@ void tag_handler(uint8_t* serial_no)
 
 void rc522_authenticate(uint8_t cmd_auth_key_a_or_b,
                         uint8_t block_address,
-                        uint8_t key[MF_KEY_SIZE])
+                        const uint8_t key[MF_KEY_SIZE])
 {
   response_t resp = {};
 
