@@ -345,8 +345,8 @@ void app_main(void)
 
     vTaskDelay(500);
 
-    // spotify_enqueue_song(&spotify, NULL);
-    // spotify_next_song(&spotify);
+    spotify_enqueue_song(&spotify, "3yndKI4zWEyC36BQYrdKBA");
+    spotify_next_song(&spotify);
 
     vTaskDelay(500);
   }

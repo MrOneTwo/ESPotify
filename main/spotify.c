@@ -66,7 +66,7 @@ void spotify_refresh_access_token(spotify_t* spotify)
 
 void spotify_query(spotify_t* spotify)
 {
-  char access_token_header[280];
+  char* access_token_header = (char*)malloc(280);
   snprintf(access_token_header, 280, "Bearer %s", spotify->access_token);
 
   // Modyfing the client here, which we assume is connected to the server.
@@ -89,15 +89,21 @@ void spotify_query(spotify_t* spotify)
             esp_http_client_get_status_code(context.client),
             esp_http_client_get_content_length(context.client));
   }
+  free(access_token_header);
 }
 
-void spotify_enqueue_song(spotify_t* spotify, uint8_t song_id[24])
+void spotify_enqueue_song(spotify_t* spotify, char* song_id)
 {
-  char access_token_header[280];
+  char* const access_token_header = (char*)malloc(280);
   snprintf(access_token_header, 280, "Bearer %s", spotify->access_token);
 
   // Modyfing the client here, which we assume is connected to the server.
-  const char* spotify_url = "https://api.spotify.com/v1/me/player/queue?uri=spotify:track:3yndKI4zWEyC36BQYrdKBA";
+  const char* const _url = "https://api.spotify.com/v1/me/player/queue?uri=spotify:track:";
+  char* const spotify_url = (char*)malloc(128);
+  spotify_url[0] = 0;
+  strncpy(spotify_url, _url, 128);
+  strncat(spotify_url, song_id, 128 - strlen(spotify_url));
+
   esp_http_client_config_t config = {
     .url = spotify_url,
     .transport_type = HTTP_TRANSPORT_OVER_SSL,
@@ -115,11 +121,13 @@ void spotify_enqueue_song(spotify_t* spotify, uint8_t song_id[24])
              esp_http_client_get_status_code(context.client),
              esp_http_client_get_content_length(context.client));
   }
+  free(access_token_header);
+  free(spotify_url);
 }
 
 void spotify_next_song(spotify_t* spotify)
 {
-  char access_token_header[280];
+  char* access_token_header = (char*)malloc(280);
   snprintf(access_token_header, 280, "Bearer %s", spotify->access_token);
 
   // Modyfing the client here, which we assume is connected to the server.
@@ -141,6 +149,7 @@ void spotify_next_song(spotify_t* spotify)
              esp_http_client_get_status_code(context.client),
              esp_http_client_get_content_length(context.client));
   }
+  free(access_token_header);
 }
 
 static esp_err_t spotify_http_event_handler(esp_http_client_event_t *evt)
