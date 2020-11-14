@@ -136,7 +136,7 @@ status_e rc522_get_picc_id();
 void rc522_read_picc_data(uint8_t block_adress, uint8_t buffer[16]);
 void rc522_write_picc_data(uint8_t block_address, uint8_t buffer[18]);
 
-esp_err_t rc522_start();
+esp_err_t rc522_start_scanning();
 esp_err_t rc522_resume();
 esp_err_t rc522_pause();
 

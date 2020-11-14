@@ -733,7 +733,7 @@ void rc522_authenticate(uint8_t cmd_auth_key_a_or_b,
   assert(resp.data == NULL);
 }
 
-esp_err_t rc522_start()
+esp_err_t rc522_start_scanning()
 {
   // rc522_init();
 

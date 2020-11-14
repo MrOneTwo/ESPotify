@@ -18,6 +18,7 @@
 #include "spotify.h"
 #include "rfid.h"
 #include "shared.h"
+#include "hardware.h"
 
 #define MIN(a, b) (a <= b ? a : b)
 
@@ -316,10 +317,15 @@ void app_main(void)
   }
   ESP_ERROR_CHECK(ret);
 
+  hardware_init();
+  spi_device_handle_t* spi = hardware_get_spi_handle();
+  rfid_init(spi);
+
   wifi_init_sta();
 
   spotify_init(&spotify);
-  rfid_init();
+
+  rfid_start_scanning();
 
   while (1)
   {
@@ -339,8 +345,8 @@ void app_main(void)
 
     vTaskDelay(500);
 
-    spotify_enqueue_song(&spotify, NULL);
-    spotify_next_song(&spotify);
+    // spotify_enqueue_song(&spotify, NULL);
+    // spotify_next_song(&spotify);
 
     vTaskDelay(500);
   }
