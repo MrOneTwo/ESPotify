@@ -1,11 +1,16 @@
 #include "rc522.h"
+#include "spotify.h"
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
+#include <string.h>
+
 
 static esp_timer_handle_t s_rc522_timer;
 TaskHandle_t x_task_rfid_read_or_write = NULL;
+TaskHandle_t x_spotify = NULL;
+QueueHandle_t q_rfid_to_spotify = NULL;
 
 bool scanning_timer_running = false;
 
@@ -42,20 +47,70 @@ void task_rfid_read_or_write(void* pvParameters)
     // Authenticate sector access.
     rc522_authenticate(PICC_CMD_MF_AUTH_KEY_A, block, key);
 
-    uint8_t data[18] = {
-      0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7,
-      0x8, 0x9, 0xA, 0xB, 0xC, 0xD, 0xE, 0xF
+    uint8_t transfer_buffer[18] = {
+      'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h',
+      'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p'
     };
+    uint8_t data_buffer[32] = {};
+    const char* _song_id = "5lRNFkvM9qPxjt3U3drUrl";
 
-    printf("READING %d\n", block);
-    rc522_read_picc_data(block, data);
-    printf("BLOCK %d DATA: %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x\n", block,
-      data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7],
-      data[8], data[9], data[10], data[11], data[12], data[13], data[14], data[15]);
+    // {
+    //   memset(data_buffer, '.', 32);
+    //   memcpy(data_buffer, "sp_song", strlen("sp_song"));
+    //   // Copy the last 16 bytes of the song id.
+    //   memcpy(data_buffer + 16, _song_id + strlen(_song_id) - 16, 16);
+    //   // Copy the length - last 16 bytes of the song id.
+    //   memcpy(data_buffer + 16 - (strlen(_song_id) - 16), _song_id, strlen(_song_id) - 16);
+    //   printf("---- %.32s\n", data_buffer);
+
+    //   memcpy(transfer_buffer, data_buffer, 16);
+    //   rc522_write_picc_data(block, transfer_buffer);
+
+    //   memcpy(transfer_buffer, data_buffer + 16, 16);
+    //   rc522_write_picc_data(block + 1, transfer_buffer);
+    // }
+
+    char msg[32];
+
+    {
+      rc522_read_picc_data(block, transfer_buffer);
+      memcpy(msg, transfer_buffer, 16);
+
+      rc522_read_picc_data(block + 1, transfer_buffer);
+      memcpy(msg + 16, transfer_buffer, 16);
+    }
 
     rc522_picc_halta(PICC_CMD_HALTA);
     // Clear the MFCrypto1On bit.
     rc522_clear_bitmask(RC522_REG_STATUS_2, 0x08);
+
+    (void)xQueueSendToBack(q_rfid_to_spotify, (const void*)msg, portMAX_DELAY);
+  }
+}
+
+void task_spotify(void* pvParameters)
+{
+  while (1)
+  {
+    printf("TASK SPOTIFY!\n");
+    char msg[32] = {};
+    // Block forever waiting for a message.
+    BaseType_t status;
+    status = xQueueReceive(q_rfid_to_spotify, msg, portMAX_DELAY);
+
+    if(status == pdPASS)
+    {
+      spotify_query(&spotify);
+      printf("task_spotify: msg: %.32s\n", msg);
+      if (memcmp(msg, "sp_song", strlen("sp_song")) == 0)
+      {
+        spotify_enqueue_song(&spotify, msg + sizeof(msg) - 23);
+      }
+    }
+    else
+    {
+      // TODO(michalc): I don't expect we'll get here...
+    }
   }
 }
 
@@ -74,6 +129,22 @@ void tasks_init(void)
   {
     // success
   }
+
+  xReturned = xTaskCreate(&task_spotify,     // Function that implements the task.
+                          "task_spotify",    // Text name for the task.
+                          32 * 1024 / 4,                 // Stack size in words, not bytes.
+                          (void*) 1,                    // Parameter passed into the task.
+                          5,                            // Priority at which the task is created.
+                          &x_spotify);  // Used to pass out the created task's handle.
+
+  if(xReturned == pdPASS)
+  {
+    // success
+  }
+
+  const uint8_t queue_length = 4U;
+  const uint8_t queue_element_size = 32U;
+  q_rfid_to_spotify = xQueueCreate(queue_length, queue_element_size);
 
 }
 
@@ -104,5 +175,6 @@ void tasks_start(void)
     return ret;
   }
 
-  return scanning_timer_resume();
+  scanning_timer_resume();
+  return;
 }

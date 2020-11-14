@@ -332,19 +332,19 @@ void app_main(void)
 
   while (1)
   {
-    // if (!spotify.fresh)
-    // {
-    //   ESP_LOGW(TAG, "Refreshing the access token");
-    //   spotify_refresh_access_token(&spotify);
-    // }
+    if (!spotify.fresh)
+    {
+      ESP_LOGW(TAG, "Refreshing the access token");
+      spotify_refresh_access_token(&spotify);
+    }
     // spotify_query(&spotify);
 
     // // NOTE(michalc): the ESP_LOGI below flushes the output I think. That's why those prinfs fails
     // // without subsequent ESP_LOGI.
-    // printf("Music playing: %s\n", spotify_playback.is_playing ? "YES" : "NO");
-    // printf("Artist: %s\n", spotify_playback.artist);
-    // printf("Song: %s\n", spotify_playback.song_title);
-    // printf("Song ID: %s\n", spotify_playback.song_id);
+    printf("Music playing: %s\n", spotify_playback.is_playing ? "YES" : "NO");
+    printf("Artist: %s\n", spotify_playback.artist);
+    printf("Song: %s\n", spotify_playback.song_title);
+    printf("Song ID: %s\n", spotify_playback.song_id);
 
     // vTaskDelay(500);
 
@@ -352,7 +352,6 @@ void app_main(void)
     // vTaskDelay(100);
     // spotify_next_song(&spotify);
 
-    printf("... main task is still here!\n");
     vTaskDelay(500);
   }
 

@@ -527,7 +527,7 @@ status_e rc522_get_picc_id()
   // move it close to reader again.
   // If you use WUPA you'll be able to wake up the PICC every time. That means the entire process
   // below will succeed every time.
-  status_e picc_present = rc522_picc_reqa_or_wupa(PICC_CMD_WUPA);
+  status_e picc_present = rc522_picc_reqa_or_wupa(PICC_CMD_REQA);
 
   return picc_present;
 }
