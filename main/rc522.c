@@ -43,7 +43,6 @@ static status_e rc522_anti_collision(uint8_t cascade_level);
  */
 static status_e rc522_picc_reqa_or_wupa(uint8_t reqa_or_wupa);
 
-static status_e rc522_picc_halta(uint8_t halta);
 
 typedef void(*rc522_tag_callback_t)(uint8_t*);
 
@@ -366,7 +365,7 @@ static status_e rc522_picc_reqa_or_wupa(uint8_t reqa_or_wupa)
   return status;
 }
 
-static status_e rc522_picc_halta(uint8_t halta)
+status_e rc522_picc_halta(uint8_t halta)
 {
   response_t resp = {};
 
