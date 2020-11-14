@@ -7,8 +7,8 @@ class MyHttpRequestHandler(http.server.SimpleHTTPRequestHandler):
     print(f"Client: {self.client_address}")
     print(f"Requested path: {self.path}")
     print(f"Headers: {self.headers}")
-    if self.path.startswith("/espotify?code"):
-      print("Matched /espotify?code")
+    if self.path.startswith("/espotify"):
+      print("Matched /espotify")
       # The HTTP response line is written to the internal buffer,
       # followed by Server and Date headers.
       self.send_response(200)
