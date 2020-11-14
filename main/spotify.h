@@ -2,12 +2,12 @@
 #define SPOTIFY_H
 
 #include <stdbool.h>
+#include <stdint.h>
 
 
 typedef struct spotify_t
 {
   bool fresh;
-  char artist[64];
   char client_id[128];
   char client_secret[128];
   char refresh_token[256];
@@ -28,5 +28,8 @@ extern spotify_playback_t spotify_playback;
 void spotify_init(spotify_t* spotify);
 void spotify_query(spotify_t* spotify);
 void spotify_refresh_access_token(spotify_t* spotify);
+
+void spotify_enqueue_song(spotify_t* spotify, uint8_t song_id[24]);
+// https://api.spotify.com/v1/me/player/queue?uri=spotify:track:ID
 
 #endif // SPOTIFY_H

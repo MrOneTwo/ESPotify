@@ -13,6 +13,7 @@ spotify_playback_t spotify_playback;
 
 static esp_err_t spotify_http_event_handler(esp_http_client_event_t *evt);
 
+// This is a global variable because I want to have a persistent connection.
 typedef struct context_t
 {
   esp_http_client_handle_t client;
@@ -58,29 +59,28 @@ void spotify_refresh_access_token(spotify_t* spotify)
             esp_http_client_get_status_code(client),
             esp_http_client_get_content_length(client));
   }
+
+  // Closing this connection.
   esp_http_client_cleanup(client);
 }
 
 void spotify_query(spotify_t* spotify)
 {
-  char buf[280];
+  char access_token_header[280];
+  snprintf(access_token_header, 280, "Bearer %s", spotify->access_token);
 
-  if (context.client_inited == false)
-  {
-    const char* spotify_url = "https://api.spotify.com/v1/me/player";
-    esp_http_client_config_t config = {
-      .url = spotify_url,
-      .transport_type = HTTP_TRANSPORT_OVER_SSL,
-      .event_handler = spotify_http_event_handler,
-    };
-    context.client = esp_http_client_init(&config);
+  // Modyfing the client here, which we assume is connected to the server.
+  const char* spotify_url = "https://api.spotify.com/v1/me/player";
+  esp_http_client_config_t config = {
+    .url = spotify_url,
+    .transport_type = HTTP_TRANSPORT_OVER_SSL,
+    .event_handler = spotify_http_event_handler,
+  };
+  context.client = esp_http_client_init(&config);
 
-    snprintf(buf, 280, "Bearer %s", spotify->access_token);
-    esp_http_client_set_header(context.client, "Authorization", buf);
-    esp_http_client_set_method(context.client, HTTP_METHOD_GET);
+  esp_http_client_set_header(context.client, "Authorization", access_token_header);
+  esp_http_client_set_method(context.client, HTTP_METHOD_GET);
 
-    context.client_inited = true;
-  }
 
   esp_err_t err = esp_http_client_perform(context.client);
 
@@ -91,8 +91,35 @@ void spotify_query(spotify_t* spotify)
   }
 }
 
+void spotify_enqueue_song(spotify_t* spotify, uint8_t song_id[24])
+{
+  char access_token_header[280];
+  snprintf(access_token_header, 280, "Bearer %s", spotify->access_token);
+
+  // Modyfing the client here, which we assume is connected to the server.
+  const char* spotify_url = "https://api.spotify.com/v1/me/player/queue?uri=spotify:track:3yndKI4zWEyC36BQYrdKBA";
+  esp_http_client_config_t config = {
+    .url = spotify_url,
+    .transport_type = HTTP_TRANSPORT_OVER_SSL,
+    .event_handler = spotify_http_event_handler,
+  };
+  context.client = esp_http_client_init(&config);
+
+  esp_http_client_set_header(context.client, "Authorization", access_token_header);
+  esp_http_client_set_method(context.client, HTTP_METHOD_POST);
+
+  esp_err_t err = esp_http_client_perform(context.client);
+
+  if (err == ESP_OK) {
+    ESP_LOGW(TAG, "Status = %d, content_length = %d",
+             esp_http_client_get_status_code(context.client),
+             esp_http_client_get_content_length(context.client));
+  }
+}
+
 static esp_err_t spotify_http_event_handler(esp_http_client_event_t *evt)
 {
+  // TODO(michalc): the response_buf is pretty big... it would be better to put it on the heap.
   #define RESPONSE_BUF_SIZE (1024 * 5)
   // This buffer is local to this scope but the data is persistent.
   static char response_buf[RESPONSE_BUF_SIZE] = {};

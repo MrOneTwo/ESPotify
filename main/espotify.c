@@ -336,6 +336,7 @@ void app_main(void)
     printf("Artist: %s\n", spotify_playback.artist);
     printf("Song: %s\n", spotify_playback.song_title);
     printf("Song ID: %s\n", spotify_playback.song_id);
+    spotify_enqueue_song(&spotify, NULL);
     vTaskDelay(1000);
   }
 
