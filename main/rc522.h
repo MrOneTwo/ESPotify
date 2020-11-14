@@ -9,6 +9,8 @@
 
 #include "driver/spi_master.h"
 
+#include "rfid.h"
+
 #define RC522_REG_COMMAND         0x01
 #define RC522_REG_COM_IRQ_EN_DI   0x02
 #define RC522_REG_DIV_IRQ_EN_DI   0x03
@@ -103,10 +105,13 @@ typedef struct response_t {
   uint32_t size_bits;
 } response_t;
 
-typedef void(*rc522_tag_callback_t)(uint8_t*);
+// A example callback that the user can register.
+void tag_handler(uint8_t* serial_no);
+
+void picc_data_to_useful_data();
 
 
-esp_err_t rc522_init(spi_device_handle_t* spi);
+esp_err_t rc522_init(spi_device_handle_t* spi, QueueHandle_t* q);
 
 esp_err_t rc522_write_n(uint8_t addr, uint8_t data_size, uint8_t *data);
 esp_err_t rc522_write(uint8_t addr , uint8_t val);

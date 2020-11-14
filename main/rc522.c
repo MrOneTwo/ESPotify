@@ -45,6 +45,7 @@ static status_e rc522_picc_reqa_or_wupa(uint8_t reqa_or_wupa);
 
 static status_e rc522_picc_halta(uint8_t halta);
 
+typedef void(*rc522_tag_callback_t)(uint8_t*);
 
 typedef struct picc_t {
   uint8_t uid_hot;
@@ -67,9 +68,11 @@ typedef struct picc_t {
 } picc_t;
 
 picc_t picc;
+QueueHandle_t* queue;
 
-esp_err_t rc522_init(spi_device_handle_t* spi)
+esp_err_t rc522_init(spi_device_handle_t* spi, QueueHandle_t* q)
 {
+  queue = q;
   rc522_spi = spi;
 
   // ---------- RW test ------------
@@ -643,6 +646,47 @@ void rc522_write_picc_data(uint8_t block_address, uint8_t buffer[18])
   return;
 }
 
+
+void tag_handler(uint8_t* serial_no)
+{
+  if (picc.uid_hot)
+  {
+    printf("type: 0x%x, %s : ", picc.type, picc.uid_full ? "full" : "not full");
+    for (int i = 0; i < 10; i++)
+    {
+      printf("%x ", serial_no[i]);
+    }
+    printf("\n");
+    picc.uid_hot = false;
+  }
+}
+
+void rc522_authenticate(uint8_t cmd_auth_key_a_or_b,
+                        uint8_t block_address,
+                        uint8_t key[MF_KEY_SIZE])
+{
+  response_t resp = {};
+
+  uint8_t picc_cmd_buffer[12];
+  picc_cmd_buffer[0] = cmd_auth_key_a_or_b;
+  picc_cmd_buffer[1] = block_address;
+
+  memcpy((void*)(picc_cmd_buffer + 2), key, MF_KEY_SIZE);
+  // Use the last uid uint8_ts as specified in http://cache.nxp.com/documents/application_note/AN10927.pdf
+  // section 3.2.5 "MIFARE Classic Authentication".
+  // The only missed case is the MF1Sxxxx shortcut activation,
+  // but it requires cascade tag (CT) uint8_t, that is not part of uid.
+  for (uint8_t i = 0; i < 4; i++)
+  {
+    // Use the last 4 bytes.
+    picc_cmd_buffer[8 + i] = *((picc.uid + (picc.uid_bits / 8) - 4) + i);
+  }
+
+  rc522_picc_write(RC522_CMD_MF_AUTH, picc_cmd_buffer, 12, &resp);
+  // Authentication gets no response.
+  assert(resp.data == NULL);
+}
+
 static void rc522_timer_callback(void* arg)
 {
   status_e picc_present = rc522_get_picc_id();
@@ -693,50 +737,8 @@ static void rc522_timer_callback(void* arg)
   cb(picc.uid);
 }
 
-void tag_handler(uint8_t* serial_no)
-{
-  if (picc.uid_hot)
-  {
-    printf("type: 0x%x, %s : ", picc.type, picc.uid_full ? "full" : "not full");
-    for (int i = 0; i < 10; i++)
-    {
-      printf("%x ", serial_no[i]);
-    }
-    printf("\n");
-    picc.uid_hot = false;
-  }
-}
-
-void rc522_authenticate(uint8_t cmd_auth_key_a_or_b,
-                        uint8_t block_address,
-                        uint8_t key[MF_KEY_SIZE])
-{
-  response_t resp = {};
-
-  uint8_t picc_cmd_buffer[12];
-  picc_cmd_buffer[0] = cmd_auth_key_a_or_b;
-  picc_cmd_buffer[1] = block_address;
-
-  memcpy((void*)(picc_cmd_buffer + 2), key, MF_KEY_SIZE);
-  // Use the last uid uint8_ts as specified in http://cache.nxp.com/documents/application_note/AN10927.pdf
-  // section 3.2.5 "MIFARE Classic Authentication".
-  // The only missed case is the MF1Sxxxx shortcut activation,
-  // but it requires cascade tag (CT) uint8_t, that is not part of uid.
-  for (uint8_t i = 0; i < 4; i++)
-  {
-    // Use the last 4 bytes.
-    picc_cmd_buffer[8 + i] = *((picc.uid + (picc.uid_bits / 8) - 4) + i);
-  }
-
-  rc522_picc_write(RC522_CMD_MF_AUTH, picc_cmd_buffer, 12, &resp);
-  // Authentication gets no response.
-  assert(resp.data == NULL);
-}
-
 esp_err_t rc522_start_scanning()
 {
-  // rc522_init();
-
   const esp_timer_create_args_t timer_args = {
     .callback = &rc522_timer_callback,
     .arg = (void*)tag_handler,

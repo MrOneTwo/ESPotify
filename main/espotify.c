@@ -317,13 +317,18 @@ void app_main(void)
   }
   ESP_ERROR_CHECK(ret);
 
+  // Queue to communicate Spotify module with RFID module.
+  const uint8_t queue_length = 5U;
+  const uint8_t queue_element_size = 32;
+  QueueHandle_t queue = xQueueCreate(queue_length, queue_element_size);
+
   hardware_init();
   spi_device_handle_t* spi = hardware_get_spi_handle();
-  rfid_init(spi);
+  rfid_init(spi, &queue);
 
   wifi_init_sta();
 
-  spotify_init(&spotify);
+  spotify_init(&spotify, &queue);
 
   rfid_start_scanning();
 
@@ -345,8 +350,13 @@ void app_main(void)
 
     vTaskDelay(500);
 
-    spotify_enqueue_song(&spotify, "3yndKI4zWEyC36BQYrdKBA");
-    spotify_next_song(&spotify);
+    if (uxQueueMessagesWaiting(queue))
+    {
+      printf("Tag is there!");
+    }
+    // spotify_enqueue_song(&spotify, "3yndKI4zWEyC36BQYrdKBA");
+    // vTaskDelay(100);
+    // spotify_next_song(&spotify);
 
     vTaskDelay(500);
   }

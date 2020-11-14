@@ -4,6 +4,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "freertos/FreeRTOS.h"
+#include "freertos/queue.h"
 
 typedef struct spotify_t
 {
@@ -25,7 +27,7 @@ typedef struct spotify_playback_t
 extern spotify_t spotify;
 extern spotify_playback_t spotify_playback;
 
-void spotify_init(spotify_t* spotify);
+void spotify_init(spotify_t* spotify, QueueHandle_t* queue);
 void spotify_query(spotify_t* spotify);
 void spotify_refresh_access_token(spotify_t* spotify);
 
