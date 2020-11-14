@@ -72,12 +72,12 @@ static void event_handler(void* arg, esp_event_base_t event_base,
     {
       xEventGroupSetBits(s_wifi_event_group, WIFI_FAIL_BIT);
     }
-    ESP_LOGI(TAG,"connect to the AP fail");
+    ESP_LOGI(TAG, "Connect to the AP fail");
   }
   else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP)
   {
     ip_event_got_ip_t* event = (ip_event_got_ip_t*) event_data;
-    ESP_LOGI(TAG, "got ip:" IPSTR, IP2STR(&event->ip_info.ip));
+    ESP_LOGI(TAG, "Got ip:" IPSTR, IP2STR(&event->ip_info.ip));
     s_retry_num = 0;
     xEventGroupSetBits(s_wifi_event_group, WIFI_CONNECTED_BIT);
   }
@@ -94,27 +94,27 @@ static esp_err_t http_event_handler(esp_http_client_event_t *evt)
   switch(evt->event_id)
   {
     case HTTP_EVENT_ERROR:
-      ESP_LOGI(TAG, "HTTP_EVENT_ERROR");
+      ESP_LOGD(TAG, "HTTP_EVENT_ERROR");
       break;
     case HTTP_EVENT_ON_CONNECTED:
-      ESP_LOGI(TAG, "HTTP_EVENT_ON_CONNECTED");
+      ESP_LOGD(TAG, "HTTP_EVENT_ON_CONNECTED");
       break;
     case HTTP_EVENT_HEADER_SENT:
-      ESP_LOGI(TAG, "HTTP_EVENT_HEADER_SENT");
+      ESP_LOGD(TAG, "HTTP_EVENT_HEADER_SENT");
       break;
     case HTTP_EVENT_ON_HEADER:
-      ESP_LOGI(TAG, "HTTP_EVENT_ON_HEADER");
+      ESP_LOGD(TAG, "HTTP_EVENT_ON_HEADER");
       printf("%.*s", evt->data_len, (char*)evt->data);
       break;
     case HTTP_EVENT_ON_DATA:
-      ESP_LOGI(TAG, "HTTP_EVENT_ON_DATA, len=%d", evt->data_len);
+      ESP_LOGD(TAG, "HTTP_EVENT_ON_DATA, len=%d", evt->data_len);
       // Collect the data into a buffer.
       memcpy(&response_buf[response_buf_tail], evt->data, evt->data_len);
       response_buf_tail += evt->data_len;
 
       if (response_buf_tail >= RESPONSE_BUF_SIZE)
       {
-        ESP_LOGI(TAG, "Not enough space in the response_buf... that's a yikes!");
+        ESP_LOGD(TAG, "Not enough space in the response_buf... that's a yikes!");
       }
 
       // if (!esp_http_client_is_chunked_response(evt->client)) {
@@ -122,10 +122,10 @@ static esp_err_t http_event_handler(esp_http_client_event_t *evt)
       // }
       break;
     case HTTP_EVENT_ON_FINISH:
-      ESP_LOGI(TAG, "HTTP_EVENT_ON_FINISH");
+      ESP_LOGD(TAG, "HTTP_EVENT_ON_FINISH");
       break;
     case HTTP_EVENT_DISCONNECTED:
-      ESP_LOGI(TAG, "HTTP_EVENT_DISCONNECTED");
+      ESP_LOGD(TAG, "HTTP_EVENT_DISCONNECTED");
       break;
   }
   return ESP_OK;
@@ -282,7 +282,7 @@ static void wifi_init_sta(void)
   // happened.
   if (bits & WIFI_CONNECTED_BIT)
   {
-    ESP_LOGI(TAG, "connected to ap SSID:%s password:%s",
+    ESP_LOGI(TAG, "Connected to ap SSID:%s password:%s",
              EXAMPLE_ESP_WIFI_SSID, EXAMPLE_ESP_WIFI_PASS);
   }
   else if (bits & WIFI_FAIL_BIT)
@@ -303,6 +303,10 @@ static void wifi_init_sta(void)
 
 void app_main(void)
 {
+  esp_log_level_set("*", ESP_LOG_WARN);
+  esp_log_level_set("wifi", ESP_LOG_WARN);
+  esp_log_level_set("dhcpc", ESP_LOG_INFO);
+
   //Initialize NonVolatile Storage.
   esp_err_t ret = nvs_flash_init();
   if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND)
@@ -312,7 +316,6 @@ void app_main(void)
   }
   ESP_ERROR_CHECK(ret);
 
-  ESP_LOGI(TAG, "ESP_WIFI_MODE_STA");
   wifi_init_sta();
 
   spotify_init(&spotify);
@@ -322,7 +325,7 @@ void app_main(void)
   {
     if (!spotify.fresh)
     {
-      ESP_LOGI(TAG, "Refreshing the access token");
+      ESP_LOGW(TAG, "Refreshing the access token");
       spotify_refresh_access_token(&spotify);
     }
     spotify_query(&spotify);
@@ -333,7 +336,7 @@ void app_main(void)
     printf("Artist: %s\n", spotify_playback.artist);
     printf("Song: %s\n", spotify_playback.song_title);
     printf("Song ID: %s\n", spotify_playback.song_id);
-    vTaskDelay(5000);
+    vTaskDelay(1000);
   }
 
   if (start_webserver() == NULL)
