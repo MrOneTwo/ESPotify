@@ -120,6 +120,7 @@ uint8_t* rc522_read_n(uint8_t addr, uint8_t n) ;
 uint8_t rc522_read(uint8_t addr);
 esp_err_t rc522_set_bitmask(uint8_t addr, uint8_t mask);
 esp_err_t rc522_clear_bitmask(uint8_t addr, uint8_t mask);
+status_e rc522_picc_halta(uint8_t halta);
 
 #define rc522_fw_version() rc522_read(RC522_REG_FW_VERSION)
 esp_err_t rc522_antenna_on();
