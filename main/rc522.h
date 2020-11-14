@@ -9,7 +9,8 @@
 
 #include "driver/spi_master.h"
 
-#include "rfid.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/queue.h"
 
 #define RC522_REG_COMMAND         0x01
 #define RC522_REG_COM_IRQ_EN_DI   0x02
