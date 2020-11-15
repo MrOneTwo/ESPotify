@@ -78,7 +78,8 @@ void spotify_query(spotify_t* spotify)
 
   esp_err_t err = esp_http_client_perform(client);
 
-  if (err == ESP_OK) {
+  if (err == ESP_OK)
+  {
     ESP_LOGI(TAG, "Status = %d, content_length = %d",
             esp_http_client_get_status_code(client),
             esp_http_client_get_content_length(client));
@@ -97,9 +98,9 @@ void spotify_enqueue_song(spotify_t* spotify, char* song_id)
   // Modyfing the client here, which we assume is connected to the server.
   const char* const _url = "https://api.spotify.com/v1/me/player/queue?uri=spotify:track:";
   char* const spotify_url = (char*)malloc(128);
-  spotify_url[0] = 0;
-  strncpy(spotify_url, _url, 128);
-  strncat(spotify_url, song_id, 128 - strlen(spotify_url));
+  // Spotify's songs ID are 22 chars.
+  snprintf(spotify_url, 128, "%s%.22s", _url, song_id);
+  ESP_LOGI(TAG, "spotify_enqueue_song: %s", spotify_url);
 
   esp_http_client_config_t config = {
     .url = spotify_url,
@@ -247,7 +248,7 @@ static esp_err_t spotify_http_event_handler(esp_http_client_event_t *evt)
           }
         }
 
-        // printf("\n%.*s\n", RESPONSE_BUF_SIZE, response_buf);
+        printf("\n%.*s\n", RESPONSE_BUF_SIZE, response_buf);
         memset(response_buf, 0, RESPONSE_BUF_SIZE);
         response_buf_tail = 0;
 

@@ -305,7 +305,7 @@ static void wifi_init_sta(void)
 
 void app_main(void)
 {
-  esp_log_level_set("*", ESP_LOG_WARN);
+  esp_log_level_set("*", ESP_LOG_INFO);
   esp_log_level_set("wifi", ESP_LOG_WARN);
   esp_log_level_set("dhcpc", ESP_LOG_INFO);
 
@@ -329,15 +329,16 @@ void app_main(void)
   tasks_init();
   tasks_start();
 
+  if (!spotify.fresh)
+  {
+    ESP_LOGW(TAG, "Refreshing the access token");
+    spotify_refresh_access_token(&spotify);
+  }
+  spotify_query(&spotify);
+  vTaskDelay(200);
 
   while (1)
   {
-    if (!spotify.fresh)
-    {
-      ESP_LOGW(TAG, "Refreshing the access token");
-      spotify_refresh_access_token(&spotify);
-    }
-    // spotify_query(&spotify);
 
     // // NOTE(michalc): the ESP_LOGI below flushes the output I think. That's why those prinfs fails
     // // without subsequent ESP_LOGI.
@@ -346,7 +347,6 @@ void app_main(void)
     printf("Song: %s\n", spotify_playback.song_title);
     printf("Song ID: %s\n", spotify_playback.song_id);
 
-    // vTaskDelay(500);
 
     // spotify_enqueue_song(&spotify, "3yndKI4zWEyC36BQYrdKBA");
     // vTaskDelay(100);

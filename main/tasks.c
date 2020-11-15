@@ -3,6 +3,7 @@
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "esp_log.h"
 
 #include <string.h>
 
@@ -39,6 +40,7 @@ void task_rfid_read_or_write(void* pvParameters)
                           ULONG_MAX,
                           &notification_value,
                           portMAX_DELAY);
+    ESP_LOGI("tasks", "Reading or writing to PICC");
 
     const uint8_t sector = 2;
     static uint8_t block = 4 * sector - 4;
@@ -92,19 +94,25 @@ void task_spotify(void* pvParameters)
 {
   while (1)
   {
-    printf("TASK SPOTIFY!\n");
     char msg[32] = {};
     // Block forever waiting for a message.
     BaseType_t status;
     status = xQueueReceive(q_rfid_to_spotify, msg, portMAX_DELAY);
+    ESP_LOGI("tasks", "task_spotify got msg %.32s", msg);
 
     if(status == pdPASS)
     {
-      spotify_query(&spotify);
-      printf("task_spotify: msg: %.32s\n", msg);
+      // spotify_query(&spotify);
       if (memcmp(msg, "sp_song", strlen("sp_song")) == 0)
       {
-        spotify_enqueue_song(&spotify, msg + sizeof(msg) - 23);
+        char* msg_cursor = msg;
+        do
+        {
+          msg_cursor++;
+        }
+        while( !(*(msg_cursor - 1) == '.' && *msg_cursor != '.') );
+        ESP_LOGI("tasks", "Enqueueing song %.22s", msg_cursor);
+        spotify_enqueue_song(&spotify, msg_cursor);
       }
     }
     else
