@@ -29,7 +29,7 @@ void spotify_init(spotify_t* spotify);
 void spotify_query(spotify_t* spotify);
 void spotify_refresh_access_token(spotify_t* spotify);
 
-void spotify_enqueue_song(spotify_t* spotify, char* song_id);
+void spotify_enqueue_song(spotify_t* spotify, const char* const song_id);
 // https://api.spotify.com/v1/me/player/queue?uri=spotify:track:ID
 
 void spotify_next_song(spotify_t* spotify);

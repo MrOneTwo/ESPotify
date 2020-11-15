@@ -88,7 +88,7 @@ void spotify_query(spotify_t* spotify)
   esp_http_client_cleanup(client);
 }
 
-void spotify_enqueue_song(spotify_t* spotify, char* song_id)
+void spotify_enqueue_song(spotify_t* spotify, const char* const song_id)
 {
   esp_http_client_handle_t client;
 
