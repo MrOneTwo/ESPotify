@@ -54,7 +54,7 @@ void task_rfid_read_or_write(void* pvParameters)
       'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p'
     };
     uint8_t data_buffer[32] = {};
-    const char* _song_id = "5lRNFkvM9qPxjt3U3drUrl";
+    const char* _song_id = "2OY8UbvrVHPxTENsdHWnpr";
 
     // {
     //   memset(data_buffer, '.', 32);
@@ -63,7 +63,6 @@ void task_rfid_read_or_write(void* pvParameters)
     //   memcpy(data_buffer + 16, _song_id + strlen(_song_id) - 16, 16);
     //   // Copy the length - last 16 bytes of the song id.
     //   memcpy(data_buffer + 16 - (strlen(_song_id) - 16), _song_id, strlen(_song_id) - 16);
-    //   printf("---- %.32s\n", data_buffer);
 
     //   memcpy(transfer_buffer, data_buffer, 16);
     //   rc522_write_picc_data(block, transfer_buffer);

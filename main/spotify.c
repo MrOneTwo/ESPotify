@@ -100,7 +100,6 @@ void spotify_enqueue_song(spotify_t* spotify, char* song_id)
   char* const spotify_url = (char*)malloc(128);
   // Spotify's songs ID are 22 chars.
   snprintf(spotify_url, 128, "%s%.22s", _url, song_id);
-  ESP_LOGI(TAG, "spotify_enqueue_song: %s", spotify_url);
 
   esp_http_client_config_t config = {
     .url = spotify_url,
