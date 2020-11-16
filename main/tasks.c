@@ -7,6 +7,9 @@
 
 #include <string.h>
 
+// TODO(michalc): This is defined in the hardware.c... shouldn't be defined in two places.
+#define GPIO_IRQ_PIN 15
+
 
 static esp_timer_handle_t s_rc522_timer;
 TaskHandle_t x_task_rfid_read_or_write = NULL;
@@ -14,7 +17,19 @@ TaskHandle_t x_spotify = NULL;
 QueueHandle_t q_rfid_to_spotify = NULL;
 
 bool scanning_timer_running = false;
+uint8_t reading_or_writing = 0;
 
+// NOTE(michalc): I'm not really happy with this being here. I wanted this scope to be only
+// about tasks. It is what it is.
+void gpio_isr_callback(void* arg)
+{
+  uint32_t gpio_num = *(uint32_t*)arg;
+  // Next operation will be writing to a PICC.
+  if (gpio_num == GPIO_IRQ_PIN)
+  {
+    reading_or_writing = 0x1;
+  }
+}
 
 static void task_rfid_scanning(void* arg)
 {
@@ -23,7 +38,8 @@ static void task_rfid_scanning(void* arg)
   if (picc_present == SUCCESS)
   {
     status_e status = rc522_anti_collision(1);
-    xTaskNotify(x_task_rfid_read_or_write, 0, eNoAction);
+    xTaskNotify(x_task_rfid_read_or_write, reading_or_writing, eSetValueWithOverwrite);
+    reading_or_writing = 0x0;
   }
 
   (void)arg;
@@ -33,12 +49,12 @@ void task_rfid_read_or_write(void* pvParameters)
 {
   while (1)
   {
-    uint32_t notification_value;
+    uint32_t reading_or_writing;
 
     // Wait indefinitely for a notification from the scanning task.
     (void)xTaskNotifyWait(0x0,
                           ULONG_MAX,
-                          &notification_value,
+                          &reading_or_writing,
                           portMAX_DELAY);
     ESP_LOGI("tasks", "Reading or writing to PICC");
 
@@ -49,43 +65,58 @@ void task_rfid_read_or_write(void* pvParameters)
     // Authenticate sector access.
     rc522_authenticate(PICC_CMD_MF_AUTH_KEY_A, block, key);
 
-    uint8_t transfer_buffer[18] = {
-      'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h',
-      'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p'
-    };
-    uint8_t data_buffer[32] = {};
+    // 16 bytes and 2 bytes for CRC.
+    uint8_t transfer_buffer[18] = {};
     const char* _song_id = "2OY8UbvrVHPxTENsdHWnpr";
+    uint8_t spotify_should_act = 0;
+    uint8_t msg[32] = {};
 
-    // {
-    //   memset(data_buffer, '.', 32);
-    //   memcpy(data_buffer, "sp_song", strlen("sp_song"));
-    //   // Copy the last 16 bytes of the song id.
-    //   memcpy(data_buffer + 16, _song_id + strlen(_song_id) - 16, 16);
-    //   // Copy the length - last 16 bytes of the song id.
-    //   memcpy(data_buffer + 16 - (strlen(_song_id) - 16), _song_id, strlen(_song_id) - 16);
-
-    //   memcpy(transfer_buffer, data_buffer, 16);
-    //   rc522_write_picc_data(block, transfer_buffer);
-
-    //   memcpy(transfer_buffer, data_buffer + 16, 16);
-    //   rc522_write_picc_data(block + 1, transfer_buffer);
-    // }
-
-    char msg[32];
-
+    // Value of 0x1 means writing.
+    if (reading_or_writing == 0x1)
     {
+      // TODO(michalc): wait for refresh of the Spotify's playback state.
+
+      uint8_t write_buffer[32] = {};
+      memset(write_buffer, '.', 32);
+      memcpy(write_buffer, "sp_song", strlen("sp_song"));
+      // Copy the last 16 bytes of the song id.
+      memcpy(write_buffer + 16, _song_id + strlen(_song_id) - 16, 16);
+      // Copy the length - last 16 bytes of the song id.
+      memcpy(write_buffer + 16 - (strlen(_song_id) - 16), _song_id, strlen(_song_id) - 16);
+
+      // Write the data into PICC.
+      memcpy(transfer_buffer, write_buffer, 16);
+      rc522_write_picc_data(block, transfer_buffer);
+
+      memcpy(transfer_buffer, write_buffer + 16, 16);
+      rc522_write_picc_data(block + 1, transfer_buffer);
+    }
+    // Value 0f 0x0 means reading.
+    else if (reading_or_writing == 0x0)
+    {
+      uint8_t read_buffer[32] = {};
+
       rc522_read_picc_data(block, transfer_buffer);
-      memcpy(msg, transfer_buffer, 16);
+      memcpy(read_buffer, transfer_buffer, 16);
 
       rc522_read_picc_data(block + 1, transfer_buffer);
-      memcpy(msg + 16, transfer_buffer, 16);
+      memcpy(read_buffer + 16, transfer_buffer, 16);
+
+      // We want to send a message to the Spotify task.
+      spotify_should_act = 1;
+      // NOTE(michalc): what's saved in the PICC is the message we send. Might change in the
+      // future.
+      memcpy(msg, read_buffer, 32);
     }
 
     rc522_picc_halta(PICC_CMD_HALTA);
     // Clear the MFCrypto1On bit.
     rc522_clear_bitmask(RC522_REG_STATUS_2, 0x08);
 
-    (void)xQueueSendToBack(q_rfid_to_spotify, (const void*)msg, portMAX_DELAY);
+    if (spotify_should_act)
+    {
+      (void)xQueueSendToBack(q_rfid_to_spotify, (const void*)msg, portMAX_DELAY);
+    }
   }
 }
 

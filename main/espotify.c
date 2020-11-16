@@ -318,7 +318,7 @@ void app_main(void)
   }
   ESP_ERROR_CHECK(ret);
 
-  hardware_init();
+  hardware_init(gpio_isr_callback);
   spi_device_handle_t spi = hardware_get_spi_handle();
   rc522_init(spi);
 
@@ -329,16 +329,17 @@ void app_main(void)
   tasks_init();
   tasks_start();
 
-  if (!spotify.fresh)
-  {
-    ESP_LOGW(TAG, "Refreshing the access token");
-    spotify_refresh_access_token(&spotify);
-  }
-  spotify_query(&spotify);
   vTaskDelay(200);
 
   while (1)
   {
+    if (!spotify.fresh)
+    {
+      ESP_LOGW(TAG, "Refreshing the access token");
+      spotify_refresh_access_token(&spotify);
+    }
+    spotify_query(&spotify);
+    vTaskDelay(1000);
 
     // // NOTE(michalc): the ESP_LOGI below flushes the output I think. That's why those prinfs fails
     // // without subsequent ESP_LOGI.
@@ -346,13 +347,6 @@ void app_main(void)
     printf("Artist: %s\n", spotify_playback.artist);
     printf("Song: %s\n", spotify_playback.song_title);
     printf("Song ID: %s\n", spotify_playback.song_id);
-
-
-    // spotify_enqueue_song(&spotify, "3yndKI4zWEyC36BQYrdKBA");
-    // vTaskDelay(100);
-    // spotify_next_song(&spotify);
-
-    vTaskDelay(500);
   }
 
   if (start_webserver() == NULL)

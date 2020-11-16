@@ -28,7 +28,6 @@ const uint32_t _GPIO_IRQ_PIN = 15U;
 
 
 spi_device_handle_t _spi;
-bool newTagPresent = false;
 
 static void spi_pretransfer_callback(spi_transaction_t *t)
 {
@@ -36,21 +35,20 @@ static void spi_pretransfer_callback(spi_transaction_t *t)
   gpio_set_level(PIN_NUM_CS, dc);
 }
 
-static void gpio_isr_handler(void* arg)
-{
-  uint32_t gpio_num = *(uint32_t*)arg;
-  if (gpio_num == GPIO_IRQ_PIN)
-  {
-    newTagPresent = true;
-  }
-}
+// static void gpio_isr_handler(void* arg)
+// {
+//   uint32_t gpio_num = *(uint32_t*)arg;
+//   if (gpio_num == GPIO_IRQ_PIN)
+//   {
+//   }
+// }
 
 spi_device_handle_t hardware_get_spi_handle(void)
 {
   return _spi;
 }
 
-void hardware_init(void)
+void hardware_init(void(*gpio_cb)(void* arg))
 {
   esp_err_t ret;
 
@@ -67,7 +65,7 @@ void hardware_init(void)
 
   ret = gpio_install_isr_service(ESP_INTR_FLAG_EDGE);
   ESP_ERROR_CHECK(ret);
-  ret = gpio_isr_handler_add(GPIO_IRQ_PIN, gpio_isr_handler, (void*)(&_GPIO_IRQ_PIN));
+  ret = gpio_isr_handler_add(GPIO_IRQ_PIN, gpio_cb, (void*)(&_GPIO_IRQ_PIN));
   ESP_ERROR_CHECK(ret);
 
   // SPI
