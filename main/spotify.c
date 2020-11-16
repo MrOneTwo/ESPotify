@@ -18,20 +18,28 @@ spotify_playback_t spotify_playback;
 static esp_err_t spotify_http_event_handler(esp_http_client_event_t *evt);
 
 
-void spotify_init(spotify_access_t* spotify)
+void spotify_init()
 {
-  spotify->fresh = false;
-  memset(spotify->client_id, 0, sizeof(spotify->client_id));
-  memset(spotify->client_secret, 0, sizeof(spotify->client_secret));
-  memset(spotify->refresh_token, 0, sizeof(spotify->refresh_token));
-  memset(spotify->access_token, 0, sizeof(spotify->access_token));
+  spotify.fresh = false;
+  // This is used instead of `inited` field. It's used when the code in tasks.c write using the
+  // current spotify_playback.song_id. I don't want it to write crap into PICC.
+  spotify_playback.is_playing = 0xFF;
+  memset(spotify.client_id, 0, sizeof(spotify.client_id));
+  memset(spotify.client_secret, 0, sizeof(spotify.client_secret));
+  memset(spotify.refresh_token, 0, sizeof(spotify.refresh_token));
+  memset(spotify.access_token, 0, sizeof(spotify.access_token));
 
-  snprintf(spotify->client_id, sizeof(spotify->client_id), "%s", CONFIG_SPOTIFY_CLIENT_ID);
-  snprintf(spotify->client_secret, sizeof(spotify->client_secret), "%s", CONFIG_SPOTIFY_CLIENT_SECRET);
-  snprintf(spotify->refresh_token, sizeof(spotify->refresh_token), "%s", CONFIG_SPOTIFY_REFRESH_TOKEN);
+  snprintf(spotify.client_id, sizeof(spotify.client_id), "%s", CONFIG_SPOTIFY_CLIENT_ID);
+  snprintf(spotify.client_secret, sizeof(spotify.client_secret), "%s", CONFIG_SPOTIFY_CLIENT_SECRET);
+  snprintf(spotify.refresh_token, sizeof(spotify.refresh_token), "%s", CONFIG_SPOTIFY_REFRESH_TOKEN);
 }
 
-void spotify_refresh_access_token(spotify_access_t* spotify)
+uint8_t spotify_is_fresh_access_token()
+{
+  return spotify.fresh;
+}
+
+void spotify_refresh_access_token()
 {
   const char* spotify_url = "https://accounts.spotify.com/api/token";
   esp_http_client_config_t config = {
@@ -43,9 +51,9 @@ void spotify_refresh_access_token(spotify_access_t* spotify)
   esp_http_client_set_method(client, HTTP_METHOD_POST);
   char data[1024];
   snprintf(data, 1024, "client_id=%s&client_secret=%s&refresh_token=%s&grant_type=refresh_token",
-           spotify->client_id,
-           spotify->client_secret,
-           spotify->refresh_token);
+           spotify.client_id,
+           spotify.client_secret,
+           spotify.refresh_token);
   esp_http_client_set_post_field(client, data, strlen(data));
 
   esp_err_t err = esp_http_client_perform(client);
@@ -60,12 +68,12 @@ void spotify_refresh_access_token(spotify_access_t* spotify)
   esp_http_client_cleanup(client);
 }
 
-void spotify_query(spotify_access_t* spotify)
+void spotify_query()
 {
   esp_http_client_handle_t client;
 
   char* access_token_header = (char*)malloc(280);
-  snprintf(access_token_header, 280, "Bearer %s", spotify->access_token);
+  snprintf(access_token_header, 280, "Bearer %s", spotify.access_token);
 
   // Modyfing the client here, which we assume is connected to the server.
   const char* spotify_url = "https://api.spotify.com/v1/me/player";
@@ -92,12 +100,12 @@ void spotify_query(spotify_access_t* spotify)
   esp_http_client_cleanup(client);
 }
 
-void spotify_enqueue_song(spotify_access_t* spotify, const char* const song_id)
+void spotify_enqueue_song(const char* const song_id)
 {
   esp_http_client_handle_t client;
 
   char* const access_token_header = (char*)malloc(280);
-  snprintf(access_token_header, 280, "Bearer %s", spotify->access_token);
+  snprintf(access_token_header, 280, "Bearer %s", spotify.access_token);
 
   // Modyfing the client here, which we assume is connected to the server.
   const char* const _url = "https://api.spotify.com/v1/me/player/queue?uri=spotify:track:";
@@ -127,12 +135,12 @@ void spotify_enqueue_song(spotify_access_t* spotify, const char* const song_id)
   esp_http_client_cleanup(client);
 }
 
-void spotify_next_song(spotify_access_t* spotify)
+void spotify_next_song()
 {
   esp_http_client_handle_t client;
 
   char* access_token_header = (char*)malloc(280);
-  snprintf(access_token_header, 280, "Bearer %s", spotify->access_token);
+  snprintf(access_token_header, 280, "Bearer %s", spotify.access_token);
 
   // Modyfing the client here, which we assume is connected to the server.
   const char* spotify_url = "https://api.spotify.com/v1/me/player/next";
@@ -241,11 +249,11 @@ static esp_err_t spotify_http_event_handler(esp_http_client_event_t *evt)
           {
             if (cJSON_IsTrue(is_playing))
             {
-              spotify_playback.is_playing = true;
+              spotify_playback.is_playing = 1;
             }
             else
             {
-              spotify_playback.is_playing = false;
+              spotify_playback.is_playing = 0;
             }
           }
         }

@@ -67,12 +67,12 @@ void task_rfid_read_or_write(void* pvParameters)
 
     // 16 bytes and 2 bytes for CRC.
     uint8_t transfer_buffer[18] = {};
-    const char* _song_id = spotify_playback.song_id;
+    const char* song_id = spotify_playback.song_id;
     uint8_t spotify_should_act = 0;
     uint8_t msg[32] = {};
 
     // Value of 0x1 means writing.
-    if (reading_or_writing == 0x1)
+    if (reading_or_writing == 0x1 && spotify_playback.is_playing != 0xFF)
     {
       // TODO(michalc): wait for refresh of the Spotify's playback state.
 
@@ -80,9 +80,9 @@ void task_rfid_read_or_write(void* pvParameters)
       memset(write_buffer, '.', 32);
       memcpy(write_buffer, "sp_song", strlen("sp_song"));
       // Copy the last 16 bytes of the song id.
-      memcpy(write_buffer + 16, _song_id + strlen(_song_id) - 16, 16);
+      memcpy(write_buffer + 16, song_id + strlen(song_id) - 16, 16);
       // Copy the length - last 16 bytes of the song id.
-      memcpy(write_buffer + 16 - (strlen(_song_id) - 16), _song_id, strlen(_song_id) - 16);
+      memcpy(write_buffer + 16 - (strlen(song_id) - 16), song_id, strlen(song_id) - 16);
 
       // Write the data into PICC.
       memcpy(transfer_buffer, write_buffer, 16);
@@ -142,7 +142,7 @@ void task_spotify(void* pvParameters)
         }
         while( !(*(msg_cursor - 1) == '.' && *msg_cursor != '.') );
         ESP_LOGI("tasks", "Enqueueing song %.22s", msg_cursor);
-        spotify_enqueue_song(&spotify, msg_cursor);
+        spotify_enqueue_song(msg_cursor);
       }
     }
     else

@@ -324,7 +324,7 @@ void app_main(void)
 
   wifi_init_sta();
 
-  spotify_init(&spotify);
+  spotify_init();
 
   tasks_init();
   tasks_start();
@@ -333,12 +333,12 @@ void app_main(void)
 
   while (1)
   {
-    if (!spotify.fresh)
+    if (!spotify_is_fresh_access_token())
     {
       ESP_LOGW(TAG, "Refreshing the access token");
-      spotify_refresh_access_token(&spotify);
+      spotify_refresh_access_token();
     }
-    spotify_query(&spotify);
+    spotify_query();
     vTaskDelay(1000);
 
     // // NOTE(michalc): the ESP_LOGI below flushes the output I think. That's why those prinfs fails
