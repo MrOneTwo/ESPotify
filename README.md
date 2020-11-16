@@ -46,7 +46,7 @@ ninja
 ### Spotify
 
 - [x] Refreshing the access token
-  - [ ] Refreshing the access token only when previous expired
+  - [x] Refreshing the access token only when previous expired
 
 ## FAQ
 
