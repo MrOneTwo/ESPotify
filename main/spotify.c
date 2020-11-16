@@ -195,7 +195,6 @@ static esp_err_t spotify_http_event_handler(esp_http_client_event_t *evt)
       // }
       break;
     case HTTP_EVENT_ON_FINISH:
-      ;
       // Check if there is data present in the response_buf.
       if (response_buf_tail)
       {
