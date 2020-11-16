@@ -8,13 +8,13 @@
 #include <string.h>
 
 // This struct is available through extern in spotify.h.
-spotify_t spotify;
+spotify_access_t spotify;
 spotify_playback_t spotify_playback;
 
 static esp_err_t spotify_http_event_handler(esp_http_client_event_t *evt);
 
 
-void spotify_init(spotify_t* spotify)
+void spotify_init(spotify_access_t* spotify)
 {
   spotify->fresh = false;
   memset(spotify->client_id, 0, sizeof(spotify->client_id));
@@ -27,7 +27,7 @@ void spotify_init(spotify_t* spotify)
   snprintf(spotify->refresh_token, sizeof(spotify->refresh_token), "%s", CONFIG_SPOTIFY_REFRESH_TOKEN);
 }
 
-void spotify_refresh_access_token(spotify_t* spotify)
+void spotify_refresh_access_token(spotify_access_t* spotify)
 {
   const char* spotify_url = "https://accounts.spotify.com/api/token";
   esp_http_client_config_t config = {
@@ -56,7 +56,7 @@ void spotify_refresh_access_token(spotify_t* spotify)
   esp_http_client_cleanup(client);
 }
 
-void spotify_query(spotify_t* spotify)
+void spotify_query(spotify_access_t* spotify)
 {
   esp_http_client_handle_t client;
 
@@ -88,7 +88,7 @@ void spotify_query(spotify_t* spotify)
   esp_http_client_cleanup(client);
 }
 
-void spotify_enqueue_song(spotify_t* spotify, const char* const song_id)
+void spotify_enqueue_song(spotify_access_t* spotify, const char* const song_id)
 {
   esp_http_client_handle_t client;
 
@@ -123,7 +123,7 @@ void spotify_enqueue_song(spotify_t* spotify, const char* const song_id)
   esp_http_client_cleanup(client);
 }
 
-void spotify_next_song(spotify_t* spotify)
+void spotify_next_song(spotify_access_t* spotify)
 {
   esp_http_client_handle_t client;
 
