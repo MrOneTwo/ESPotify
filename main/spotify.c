@@ -11,6 +11,10 @@
 spotify_access_t spotify;
 spotify_playback_t spotify_playback;
 
+/*
+ * HTTP event handler for the spotify module. This is where response's are collected in a static
+ * buffer and parsed by cJSON.
+ */
 static esp_err_t spotify_http_event_handler(esp_http_client_event_t *evt);
 
 
@@ -261,26 +265,17 @@ static esp_err_t spotify_http_event_handler(esp_http_client_event_t *evt)
         // NOTE(michalc): the size of spotify_playback.artist buffer is 64.
         if (cJSON_GetStringValue(artist_name))
         {
-          if (strlen(cJSON_GetStringValue(artist_name)) < 64)
-          {
-            strcpy(spotify_playback.artist, cJSON_GetStringValue(artist_name));
-          }
+          strncpy(spotify_playback.artist, cJSON_GetStringValue(artist_name), MAX_ARTIST_NAME_LENGTH);
         }
 
         if (cJSON_GetStringValue(song_title))
         {
-          if (strlen(cJSON_GetStringValue(song_title)) < 64)
-          {
-            strcpy(spotify_playback.song_title, cJSON_GetStringValue(song_title));
-          }
+          strncpy(spotify_playback.song_title, cJSON_GetStringValue(song_title), MAX_SONG_TITLE_LENGTH);
         }
 
         if (cJSON_GetStringValue(song_id))
         {
-          if (strlen(cJSON_GetStringValue(song_id)) < 64)
-          {
-            strcpy(spotify_playback.song_id, cJSON_GetStringValue(song_id));
-          }
+          strncpy(spotify_playback.song_id, cJSON_GetStringValue(song_id), MAX_SONG_ID_LENGTH);
         }
 
         cJSON_Delete(response_json);

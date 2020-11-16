@@ -4,6 +4,9 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#define MAX_SONG_TITLE_LENGTH   (64U)
+#define MAX_SONG_ID_LENGTH      (32U)
+#define MAX_ARTIST_NAME_LENGTH  (64U)
 
 typedef struct spotify_access_t
 {
@@ -17,9 +20,9 @@ typedef struct spotify_access_t
 typedef struct spotify_playback_t
 {
   bool is_playing;
-  char artist[64];
-  char song_title[64];
-  char song_id[32];
+  char artist[MAX_ARTIST_NAME_LENGTH];
+  char song_title[MAX_SONG_TITLE_LENGTH];
+  char song_id[MAX_SONG_ID_LENGTH];
 } spotify_playback_t;
 
 // TODO(michalc): instead of making it extern and passing it every time it's probably better to
