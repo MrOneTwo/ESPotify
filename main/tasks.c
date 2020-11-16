@@ -67,7 +67,7 @@ void task_rfid_read_or_write(void* pvParameters)
 
     // 16 bytes and 2 bytes for CRC.
     uint8_t transfer_buffer[18] = {};
-    const char* _song_id = "2OY8UbvrVHPxTENsdHWnpr";
+    const char* _song_id = spotify_playback.song_id;
     uint8_t spotify_should_act = 0;
     uint8_t msg[32] = {};
 
