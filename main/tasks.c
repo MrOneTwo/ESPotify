@@ -10,6 +10,8 @@
 // TODO(michalc): This is defined in the hardware.c... shouldn't be defined in two places.
 #define GPIO_IRQ_PIN 15
 
+#define RFID_OP_READ  0x0
+#define RFID_OP_WRITE 0x1
 
 static esp_timer_handle_t s_rc522_timer;
 TaskHandle_t x_task_rfid_read_or_write = NULL;
@@ -17,7 +19,7 @@ TaskHandle_t x_spotify = NULL;
 QueueHandle_t q_rfid_to_spotify = NULL;
 
 bool scanning_timer_running = false;
-uint8_t reading_or_writing = 0;
+uint8_t reading_or_writing = RFID_OP_READ;
 
 // NOTE(michalc): I'm not really happy with this being here. I wanted this scope to be only
 // about tasks. It is what it is.
@@ -27,7 +29,7 @@ void gpio_isr_callback(void* arg)
   // Next operation will be writing to a PICC.
   if (gpio_num == GPIO_IRQ_PIN)
   {
-    reading_or_writing = 0x1;
+    reading_or_writing = RFID_OP_WRITE;
   }
 }
 
@@ -39,7 +41,7 @@ static void task_rfid_scanning(void* arg)
   {
     status_e status = rc522_anti_collision(1);
     xTaskNotify(x_task_rfid_read_or_write, reading_or_writing, eSetValueWithOverwrite);
-    reading_or_writing = 0x0;
+    reading_or_writing = RFID_OP_READ;
   }
 
   (void)arg;
@@ -60,7 +62,7 @@ void task_rfid_read_or_write(void* pvParameters)
 
     const uint8_t sector = 2;
     static uint8_t block = 4 * sector - 4;
-    uint8_t key[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+    const uint8_t key[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 
     // Authenticate sector access.
     rc522_authenticate(PICC_CMD_MF_AUTH_KEY_A, block, key);
@@ -71,8 +73,7 @@ void task_rfid_read_or_write(void* pvParameters)
     uint8_t spotify_should_act = 0;
     uint8_t msg[32] = {};
 
-    // Value of 0x1 means writing.
-    if (reading_or_writing == 0x1 && spotify_playback.is_playing != 0xFF)
+    if (reading_or_writing == RFID_OP_WRITE && spotify_playback.is_playing != 0xFF)
     {
       // TODO(michalc): wait for refresh of the Spotify's playback state.
 
@@ -92,7 +93,7 @@ void task_rfid_read_or_write(void* pvParameters)
       rc522_write_picc_data(block + 1, transfer_buffer);
     }
     // Value 0f 0x0 means reading.
-    else if (reading_or_writing == 0x0)
+    else if (reading_or_writing == RFID_OP_READ)
     {
       uint8_t read_buffer[32] = {};
 
