@@ -29,6 +29,9 @@ static void rc522_calculate_crc(uint8_t *data, uint8_t data_size, uint8_t* crc_b
  */
 static status_e rc522_picc_reqa_or_wupa(uint8_t reqa_or_wupa);
 
+static esp_err_t rc522_antenna_on();
+static esp_err_t rc522_set_bitmask(uint8_t addr, uint8_t mask);
+
 
 typedef void(*rc522_tag_callback_t)(uint8_t*);
 
@@ -148,7 +151,7 @@ uint8_t rc522_read(uint8_t addr)
 // SPECIFIC FUNCTIONALITY
 // 
 
-esp_err_t rc522_set_bitmask(uint8_t addr, uint8_t mask)
+static esp_err_t rc522_set_bitmask(uint8_t addr, uint8_t mask)
 {
   return rc522_write(addr, rc522_read(addr) | mask);
 }
@@ -158,7 +161,7 @@ esp_err_t rc522_clear_bitmask(uint8_t addr, uint8_t mask)
   return rc522_write(addr, rc522_read(addr) & ~mask);
 }
 
-esp_err_t rc522_antenna_on()
+static esp_err_t rc522_antenna_on()
 {
   esp_err_t ret;
 

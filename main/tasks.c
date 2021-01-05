@@ -207,12 +207,8 @@ void tasks_start(void)
     .name = "task_rfid_scanning",
   };
 
-  esp_err_t ret = esp_timer_create(&timer_args, &s_rc522_timer);
-
-  if(ret != ESP_OK)
-  {
-    return ret;
-  }
+  // Not checking return value here because I can't imagine when this would fail (hubris?).
+  esp_timer_create(&timer_args, &s_rc522_timer);
 
   scanning_timer_resume();
   return;
