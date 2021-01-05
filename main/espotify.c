@@ -17,7 +17,7 @@
 
 #include "spotify.h"
 #include "shared.h"
-#include "rc522.h"
+#include "rfid_reader.h"
 #include "hardware.h"
 #include "tasks.h"
 
@@ -320,7 +320,8 @@ void app_main(void)
 
   hardware_init(gpio_isr_callback);
   spi_device_handle_t spi = hardware_get_spi_handle();
-  rc522_init(spi);
+  rfid_implement();
+  rfid_init(spi);
 
   wifi_init_sta();
 

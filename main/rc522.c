@@ -723,6 +723,8 @@ static void rc522_timer_callback(void* arg)
   cb(picc.uid);
 }
 
+/*
+ * This is an unused function which shows how to start scanning for the tags.
 esp_err_t rc522_start_scanning()
 {
   const esp_timer_create_args_t timer_args = {
@@ -740,4 +742,4 @@ esp_err_t rc522_start_scanning()
   // return rc522_resume();
   return ESP_OK;
 }
-
+*/

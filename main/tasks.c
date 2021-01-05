@@ -203,7 +203,7 @@ void tasks_start(void)
   // Start the scanning task.
   const esp_timer_create_args_t timer_args = {
     .callback = &task_rfid_scanning,
-    .arg = (void*)tag_handler,
+    .arg = (void*)tag_handler,  // rc522.c function
     .name = "task_rfid_scanning",
   };
 
