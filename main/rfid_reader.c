@@ -18,6 +18,7 @@ rfid_implement(void)
 #if defined(RC522)
   rfid.init = rc522_init;
 #elif defined(PN532)
+  rfid.init = pn532_init;
 #endif
 }
 
