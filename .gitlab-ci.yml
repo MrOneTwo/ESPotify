@@ -4,6 +4,6 @@ image: alpine:latest
 pages:
   artifacts:
     paths:
-    -public
+    - docs
   only:
   - master
