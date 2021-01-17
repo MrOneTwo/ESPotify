@@ -31,6 +31,7 @@
 #define SPOTIFY_CLIENT_SECRET      CONFIG_SPOTIFY_CLIENT_SECRET
 #define SPOTIFY_REFRESH_TOKEN      CONFIG_SPOTIFY_REFRESH_TOKEN
 
+
 // FreeRTOS event group to signal when we are connecte
 static EventGroupHandle_t s_wifi_event_group;
 

@@ -1,11 +1,12 @@
 #include "spotify.h"
-#include "shared.h"
 
 #include "esp_http_client.h"
 #include "esp_log.h"
 #include "cJSON.h"
 
 #include <string.h>
+
+static const char* TAG = "ESPotify";
 
 // This struct is available through extern in spotify.h.
 spotify_access_t spotify;
