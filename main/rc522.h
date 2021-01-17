@@ -12,6 +12,8 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
 
+#include "rfid_reader.h"
+
 #define RC522_REG_COMMAND         0x01
 #define RC522_REG_COM_IRQ_EN_DI   0x02
 #define RC522_REG_DIV_IRQ_EN_DI   0x03
@@ -77,10 +79,6 @@
 // 5h   invalid                   parity or CRC error
 #define MF_ACK  0xA
 
-typedef enum {
-  FAILURE,
-  SUCCESS,
-} status_e;
 
 typedef enum {
   RC522_CMD_IDLE          = (0b0000),
