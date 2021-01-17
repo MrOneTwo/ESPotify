@@ -25,7 +25,8 @@ static esp_timer_handle_t rc522_timer;
 static void rc522_calculate_crc(uint8_t *data, uint8_t data_size, uint8_t* crc_buf);
 
 /*
- * This function is for waking up a PICC. It transmits the REQA command.
+ * This function is for waking up a PICC. It transmits the REQA or WUPA command.
+ * If the PICC responds then the anticollision procedure can be performed.
  */
 static status_e rc522_picc_reqa_or_wupa(uint8_t reqa_or_wupa);
 
@@ -502,8 +503,7 @@ status_e rc522_anti_collision(uint8_t cascade_level)
   return status;
 }
 
-// TODO(michalc): this could be redesigned to be a recursive function to fetch the complete UID.
-status_e rc522_get_picc_id()
+status_e rc522_test_picc_presence()
 {
   // An example sequence of establishing the full UID.
   //
@@ -675,7 +675,7 @@ void rc522_authenticate(uint8_t cmd_auth_key_a_or_b,
 
 static void rc522_timer_callback(void* arg)
 {
-  status_e picc_present = rc522_get_picc_id();
+  status_e picc_present = rc522_test_picc_presence();
 
   const uint8_t sector = 2;
   static uint8_t block = 4 * sector - 4;
