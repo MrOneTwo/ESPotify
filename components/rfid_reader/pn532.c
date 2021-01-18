@@ -157,11 +157,11 @@ pn532_init(spi_device_handle_t spi)
 bool
 pn532_test_picc_presence()
 {
-  return true;
+  return false;
 }
 
 bool
 pn532_anti_collision(uint8_t cascade_level)
 {
-  return true;
+  return false;
 }
