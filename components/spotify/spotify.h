@@ -1,3 +1,7 @@
+// spotify.h - Michal Ciesielski 2021
+//
+// ESP32 module for interacting with the Spotify via REST API.
+
 #ifndef SPOTIFY_H
 #define SPOTIFY_H
 
