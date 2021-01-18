@@ -1,4 +1,4 @@
-#include "rc522.h"
+#include "rc522.h"  // TODO(michalc): remove this when fully ported to rfid_reader
 #include "rfid_reader.h"
 #include "spotify.h"
 
