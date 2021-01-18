@@ -1,6 +1,6 @@
-/*
- * 
- */
+// periph.h - Michal Ciesielski 2021
+//
+// ESP32 module for setting up the necessary peripherals.
 
 #ifndef PERIPH_H
 #define PERIPH_H
