@@ -20,21 +20,23 @@ static esp_timer_handle_t pn532_timer;
 static bool
 pn532_read_ack()
 {
+  uint8_t _pn532_ack[] = {0x00, 0x00, 0xFF, 0x00, 0xFF, 0x00};
   uint8_t cmd = PN532_SPI_DATA_READ;
   uint8_t response[6] = {};
-  uint8_t pn532_ack[] = {0x00, 0x00, 0xFF, 0x00, 0xFF, 0x00};
-  
-  spi_transaction_t t = {};
 
-  // Yes, the length is in bits.
-  t.length = 8 * (1);
-  t.rxlength = 8 * (6);
-  t.tx_buffer = (uint8_t*)&cmd;
-  t.rx_buffer = (uint8_t*)&response;
+  {
+    spi_transaction_t t = {};
 
-  esp_err_t ret = spi_device_transmit(pn532_spi, &t);
+    // Yes, the length is in bits.
+    t.length = 8 * (1);
+    t.rxlength = 8 * (6);
+    t.tx_buffer = (uint8_t*)&cmd;
+    t.rx_buffer = (uint8_t*)&response;
 
-  return (0 == memcmp((void*)response, (void*)pn532_ack, 6));
+    esp_err_t ret = spi_device_transmit(pn532_spi, &t);
+  }
+
+  return (0 == memcmp((void*)response, (void*)_pn532_ack, 6));
 }
 
 static bool
@@ -42,16 +44,18 @@ pn532_is_ready()
 {
   uint8_t cmd = PN532_SPI_STAT_READ;
   uint8_t response;
-  
-  spi_transaction_t t = {};
 
-  // Yes, the length is in bits.
-  t.length = 8 * (1);
-  t.rxlength = 8 * (1);
-  t.tx_buffer = (uint8_t*)&cmd;
-  t.rx_buffer = (uint8_t*)&response;
+  {
+    spi_transaction_t t = {};
 
-  esp_err_t ret = spi_device_transmit(pn532_spi, &t);
+    // Yes, the length is in bits.
+    t.length = 8 * (1);
+    t.rxlength = 8 * (1);
+    t.tx_buffer = (uint8_t*)&cmd;
+    t.rx_buffer = (uint8_t*)&response;
+
+    esp_err_t ret = spi_device_transmit(pn532_spi, &t);
+  }
 
   return response == PN532_SPI_READY;
 }
@@ -81,16 +85,58 @@ pn532_write_command(uint8_t* cmd, uint8_t cmdlen)
 
   *p++ = ~crc;
   *p++ = PN532_POSTAMBLE;
+
+  esp_err_t ret = ESP_FAIL;
+  {
+    spi_transaction_t t = {};
+
+    // Yes, the length is in bits.
+    t.length = 8 * (8 + cmdlen);
+    t.tx_buffer = (uint8_t*)packet;
+
+    ret = spi_device_transmit(pn532_spi, &t);
+  }
   
+  return ret;
+}
+
+esp_err_t
+pn532_read_n(uint8_t* buff, uint8_t n)
+{
+  uint8_t cmd = PN532_SPI_DATA_READ;
+
   spi_transaction_t t = {};
 
   // Yes, the length is in bits.
-  t.length = 8 * (8 + cmdlen);
-  t.tx_buffer = (uint8_t*)packet;
+  t.length = 8 * (1);
+  t.rxlength = 8 * (n);
+  t.tx_buffer = (uint8_t*)&cmd;
+  t.rx_buffer = (uint8_t*)buff;
 
   esp_err_t ret = spi_device_transmit(pn532_spi, &t);
-  
   return ret;
+}
+
+bool
+pn532_read_fw_version()
+{
+  uint8_t _pn532_fw_version[] = {0x00, 0x00, 0xFF, 0x06, 0xFA, 0xD5};
+  uint8_t cmd = PN532_COMMAND_GETFIRMWAREVERSION;
+
+  pn532_write_command(&cmd, 1);
+
+  // TODO(michalc): add some sleep and timeout.
+  while(!pn532_is_ready());
+
+  if(!pn532_read_ack()) return ESP_FAIL;
+
+  // TODO(michalc): add some sleep and timeout.
+  while(!pn532_is_ready());
+
+  uint8_t response[12];
+  pn532_read_n(response, 12);
+
+  return (0 == memcmp((void*)response, (void*)_pn532_fw_version, 6));
 }
 
 esp_err_t

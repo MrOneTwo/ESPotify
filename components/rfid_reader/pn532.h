@@ -15,7 +15,6 @@
 #include "rfid_reader.h"
 #include "picc.h"
 
-#define PN532_REG_FW_VERSION (0x02)
 
 #define PN532_PREAMBLE      (0x00)
 #define PN532_START_CODE1   (0x00)
