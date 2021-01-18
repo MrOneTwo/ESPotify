@@ -1,6 +1,7 @@
 #include "rfid_reader.h"
 
 #include "rc522.h"
+#include "pn532.h"
 
 
 typedef esp_err_t (*rfid_impl_init)(spi_device_handle_t spi);
@@ -16,7 +17,7 @@ typedef struct rfid_impl_t {
 static rfid_impl_t rfid;
 
 // TODO(michalc): this obviously shouldn't be just a lazy define.
-#define RC522
+#define PN532
 
 void
 rfid_implement(void)
@@ -32,10 +33,10 @@ rfid_implement(void)
 #endif
 }
 
-void
+esp_err_t
 rfid_init(spi_device_handle_t spi)
 {
-  rfid.init(spi);
+  return rfid.init(spi);
 }
 
 bool

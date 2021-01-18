@@ -58,7 +58,8 @@ typedef struct picc_t {
 
 picc_t picc;
 
-esp_err_t rc522_init(spi_device_handle_t spi)
+esp_err_t
+rc522_init(spi_device_handle_t spi)
 {
   esp_err_t ret = ESP_FAIL;
   rc522_spi = spi;

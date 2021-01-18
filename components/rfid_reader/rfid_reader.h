@@ -21,7 +21,7 @@ typedef enum {
 void
 rfid_implement(void);
 
-void
+esp_err_t
 rfid_init(spi_device_handle_t spi);
 
 // TODO(michalc): not implemented yet
