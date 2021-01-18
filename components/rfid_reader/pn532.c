@@ -20,7 +20,7 @@ static esp_timer_handle_t pn532_timer;
 static bool
 pn532_read_ack()
 {
-  uint8_t cmd = PN532_SPI_DATAREAD;
+  uint8_t cmd = PN532_SPI_DATA_READ;
   uint8_t reply[6] = {};
   uint8_t pn532_ack[] = {0x00, 0x00, 0xFF, 0x00, 0xFF, 0x00};
   
@@ -40,7 +40,7 @@ pn532_read_ack()
 static bool
 pn532_is_ready()
 {
-  uint8_t cmd = PN532_SPI_STATREAD;
+  uint8_t cmd = PN532_SPI_STAT_READ;
   uint8_t reply;
   
   spi_transaction_t t = {};
