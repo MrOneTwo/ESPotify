@@ -507,7 +507,7 @@ status_e rc522_anti_collision(uint8_t cascade_level)
   return status;
 }
 
-status_e rc522_test_picc_presence()
+bool rc522_test_picc_presence()
 {
   // An example sequence of establishing the full UID.
   //
@@ -536,7 +536,7 @@ status_e rc522_test_picc_presence()
   // below will succeed every time.
   status_e picc_present = rc522_picc_reqa_or_wupa(PICC_CMD_REQA);
 
-  return picc_present;
+  return picc_present == SUCCESS ? true : false;
 }
 
 void rc522_read_picc_data(uint8_t block_address, uint8_t buffer[16])

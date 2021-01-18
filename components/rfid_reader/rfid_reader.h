@@ -24,9 +24,15 @@ rfid_implement(void);
 void
 rfid_init(spi_device_handle_t spi);
 
+// TODO(michalc): not implemented yet
+bool
+rfid_test_picc_presence(void);
+
+// TODO(michalc): not implemented yet
 void
 rfid_get_picc_id(void);
 
+// TODO(michalc): not implemented yet
 void
 rfid_anti_collision(void);
 

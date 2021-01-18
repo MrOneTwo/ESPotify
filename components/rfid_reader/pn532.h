@@ -70,6 +70,6 @@
 
 esp_err_t pn532_init(spi_device_handle_t spi);
 
-status_e pn532_test_picc_presence();
+bool pn532_test_picc_presence(void);
 
 #endif // PN532_H

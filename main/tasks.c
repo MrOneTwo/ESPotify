@@ -36,7 +36,7 @@ void gpio_isr_callback(void* arg)
 
 static void task_rfid_scanning(void* arg)
 {
-  status_e picc_present = rc522_test_picc_presence();
+  status_e picc_present = rfid_test_picc_presence();
 
   if (picc_present == SUCCESS)
   {

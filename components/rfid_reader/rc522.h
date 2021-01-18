@@ -123,7 +123,7 @@ void rc522_picc_write(rc522_commands_e cmd, uint8_t* data, uint8_t data_size, re
  */
 status_e rc522_anti_collision(uint8_t cascade_level);
 
-status_e rc522_test_picc_presence();
+bool rc522_test_picc_presence(void);
 
 void rc522_read_picc_data(uint8_t block_adress, uint8_t buffer[16]);
 void rc522_write_picc_data(uint8_t block_address, uint8_t buffer[18]);
