@@ -60,8 +60,11 @@ picc_t picc;
 
 esp_err_t rc522_init(spi_device_handle_t spi)
 {
+  esp_err_t ret = ESP_FAIL;
   rc522_spi = spi;
 
+  // TODO(michalc): this should be so dramatic. Asserts error out and restart the board.
+  // That's unnecessary. Just report that the RC522 isn't present.
   // ---------- RW test ------------
   rc522_write(RC522_REG_MOD_WIDTH, 0x25);
   assert(rc522_read(RC522_REG_MOD_WIDTH) == 0x25);
@@ -81,8 +84,9 @@ esp_err_t rc522_init(spi_device_handle_t spi)
   rc522_antenna_on();
 
   printf("RC522 firmware 0x%x\n", rc522_fw_version());
+  ret = ESP_OK;
 
-  return ESP_OK;
+  return ret;
 }
 
 esp_err_t rc522_write_n(uint8_t addr, uint8_t data_size, uint8_t *data)
