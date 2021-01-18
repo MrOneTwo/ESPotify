@@ -18,6 +18,26 @@ static esp_timer_handle_t pn532_timer;
 
 
 static bool
+pn532_read_ack()
+{
+  uint8_t cmd = PN532_SPI_DATAREAD;
+  uint8_t reply[6] = {};
+  uint8_t pn532_ack[] = {0x00, 0x00, 0xFF, 0x00, 0xFF, 0x00};
+  
+  spi_transaction_t t = {};
+
+  // Yes, the length is in bits.
+  t.length = 8 * (1);
+  t.rxlength = 8 * (6);
+  t.tx_buffer = (uint8_t*)&cmd;
+  t.rx_buffer = (uint8_t*)&reply;
+
+  esp_err_t ret = spi_device_transmit(pn532_spi, &t);
+
+  return (0 == memcmp((void*)reply, (void*)pn532_ack, 6));
+}
+
+static bool
 pn532_is_ready()
 {
   uint8_t cmd = PN532_SPI_STATREAD;
@@ -27,6 +47,7 @@ pn532_is_ready()
 
   // Yes, the length is in bits.
   t.length = 8 * (1);
+  t.rxlength = 8 * (1);
   t.tx_buffer = (uint8_t*)&cmd;
   t.rx_buffer = (uint8_t*)&reply;
 
