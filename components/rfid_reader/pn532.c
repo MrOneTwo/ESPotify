@@ -21,7 +21,7 @@ static bool
 pn532_read_ack()
 {
   uint8_t cmd = PN532_SPI_DATA_READ;
-  uint8_t reply[6] = {};
+  uint8_t response[6] = {};
   uint8_t pn532_ack[] = {0x00, 0x00, 0xFF, 0x00, 0xFF, 0x00};
   
   spi_transaction_t t = {};
@@ -30,18 +30,18 @@ pn532_read_ack()
   t.length = 8 * (1);
   t.rxlength = 8 * (6);
   t.tx_buffer = (uint8_t*)&cmd;
-  t.rx_buffer = (uint8_t*)&reply;
+  t.rx_buffer = (uint8_t*)&response;
 
   esp_err_t ret = spi_device_transmit(pn532_spi, &t);
 
-  return (0 == memcmp((void*)reply, (void*)pn532_ack, 6));
+  return (0 == memcmp((void*)response, (void*)pn532_ack, 6));
 }
 
 static bool
 pn532_is_ready()
 {
   uint8_t cmd = PN532_SPI_STAT_READ;
-  uint8_t reply;
+  uint8_t response;
   
   spi_transaction_t t = {};
 
@@ -49,11 +49,11 @@ pn532_is_ready()
   t.length = 8 * (1);
   t.rxlength = 8 * (1);
   t.tx_buffer = (uint8_t*)&cmd;
-  t.rx_buffer = (uint8_t*)&reply;
+  t.rx_buffer = (uint8_t*)&response;
 
   esp_err_t ret = spi_device_transmit(pn532_spi, &t);
 
-  return reply == PN532_SPI_READY;
+  return response == PN532_SPI_READY;
 }
 
 static esp_err_t
