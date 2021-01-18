@@ -74,4 +74,9 @@ bool pn532_test_picc_presence(void);
 
 bool pn532_anti_collision(uint8_t cascade_level);
 
+
+
+// PRIVATE BUT TESTED
+bool pn532_is_ready();
+
 #endif // PN532_H

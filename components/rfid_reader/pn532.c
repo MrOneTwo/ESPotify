@@ -39,7 +39,7 @@ pn532_read_ack()
   return (0 == memcmp((void*)response, (void*)_pn532_ack, 6));
 }
 
-static bool
+bool
 pn532_is_ready()
 {
   uint8_t cmd = PN532_SPI_STAT_READ;
@@ -128,7 +128,7 @@ pn532_read_fw_version()
   // TODO(michalc): add some sleep and timeout.
   while(!pn532_is_ready());
 
-  if(!pn532_read_ack()) return ESP_FAIL;
+  if(!pn532_read_ack()) return 0;
 
   // TODO(michalc): add some sleep and timeout.
   while(!pn532_is_ready());
