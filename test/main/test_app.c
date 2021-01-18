@@ -4,11 +4,14 @@
 #include "unity.h"
 
 
-
-static void print_banner(const char* text);
+static void print_banner(const char* text)
+{
+  printf("\n#### %s #####\n\n", text);
+}
 
 void app_main(void)
 {
+
   /* These are the different ways of running registered tests.
    * In practice, only one of them is usually needed.
    *
@@ -20,14 +23,14 @@ void app_main(void)
   // unity_run_test_by_name("Mean of an empty array is zero");
   // UNITY_END();
 
-  // print_banner("Running tests with [mean] tag");
+  // print_banner("Running tests with [rc522] tag");
   // UNITY_BEGIN();
-  // unity_run_tests_by_tag("[pn532]", false);
+  // unity_run_tests_by_tag("[rc522]", false);
   // UNITY_END();
 
   // print_banner("Running tests without [fails] tag");
   // UNITY_BEGIN();
-  // unity_run_tests_by_tag("[fails]", true);
+  // unity_run_tests_by_tag("[pn532]", true);
   // UNITY_END();
 
   print_banner("Running all the registered tests");
@@ -42,8 +45,4 @@ void app_main(void)
   unity_run_menu();
 }
 
-static void print_banner(const char* text)
-{
-  printf("\n#### %s #####\n\n", text);
-}
 
