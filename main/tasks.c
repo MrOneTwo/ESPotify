@@ -36,11 +36,11 @@ void gpio_isr_callback(void* arg)
 
 static void task_rfid_scanning(void* arg)
 {
-  status_e picc_present = rfid_test_picc_presence();
+  bool picc_present = rfid_test_picc_presence();
 
-  if (picc_present == SUCCESS)
+  if (picc_present)
   {
-    status_e status = rc522_anti_collision(1);
+    bool status = rc522_anti_collision(1);
     xTaskNotify(x_task_rfid_read_or_write, reading_or_writing, eSetValueWithOverwrite);
     reading_or_writing = RFID_OP_READ;
   }

@@ -377,7 +377,8 @@ status_e rc522_picc_halta(uint8_t halta)
 }
 
 // TODO(michalc): return value should reflect success which depends on the cascade_level.
-status_e rc522_anti_collision(uint8_t cascade_level)
+bool
+rc522_anti_collision(uint8_t cascade_level)
 {
   assert(cascade_level > 0);
   assert(cascade_level <= 3);
@@ -494,10 +495,10 @@ status_e rc522_anti_collision(uint8_t cascade_level)
     // TODO(michalc): should never happen.
   }
 
-  status_e status = FAILURE;
+  bool status = 0;
   if (picc.uid_full == true)
   {
-    status = SUCCESS;
+    status = true;
   }
   else
   {
@@ -688,9 +689,9 @@ static void rc522_timer_callback(void* arg)
   {
     // The rc522_anti_collision is a recursive function. It stores the full UID in the global
     // picc variable.
-    status_e status = rc522_anti_collision(1);
+    bool status = rc522_anti_collision(1);
 
-    if (status == SUCCESS)
+    if (status)
     {
       uint8_t key[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
       // Authenticate sector access.

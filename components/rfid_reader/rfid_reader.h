@@ -33,7 +33,7 @@ void
 rfid_get_picc_id(void);
 
 // TODO(michalc): not implemented yet
-void
-rfid_anti_collision(void);
+bool
+rfid_anti_collision(uint8_t cascade_level);
 
 #endif // RFID_READER_H
