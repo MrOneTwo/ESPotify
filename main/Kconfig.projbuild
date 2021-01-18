@@ -1,3 +1,6 @@
+# Michal Ciesielski 2021
+# Configuration file for ESPotify project.
+
 menu "Example Configuration"
 
     config ESP_WIFI_SSID
@@ -17,22 +20,4 @@ menu "Example Configuration"
         default 5
         help
             Set the Maximum retry to avoid station reconnecting to the AP unlimited when the AP is really inexistent.
-
-    config SPOTIFY_CLIENT_ID
-        string "Spotify client ID"
-        default "EMPTY"
-        help
-            Spotify's client ID
-
-    config SPOTIFY_CLIENT_SECRET
-        string "Spotify client secret"
-        default "EMPTY"
-        help
-            Spotify's client secret
-
-    config SPOTIFY_REFRESH_TOKEN
-        string "Spotify refresh token"
-        default "EMPTY"
-        help
-            Spotify's refresh token
 endmenu
