@@ -322,7 +322,10 @@ void app_main(void)
   hardware_init(gpio_isr_callback);
   spi_device_handle_t spi = hardware_get_spi_handle();
   rfid_implement();
-  rfid_init(spi);
+  if (rfid_init(spi) != ESP_OK)
+  {
+    ESP_LOGE(TAG, "Failed to init RFID reader!");
+  }
 
   wifi_init_sta();
 

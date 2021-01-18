@@ -76,6 +76,11 @@ rc522_init(spi_device_handle_t spi)
   {
     ret = ESP_FAIL;
   }
+
+  if (ret != ESP_OK)
+  {
+    return ret;
+  }
   // End of RW test
 
   rc522_write(RC522_REG_COMMAND, 0x0F);

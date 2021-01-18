@@ -17,7 +17,7 @@ typedef struct rfid_impl_t {
 static rfid_impl_t rfid;
 
 // TODO(michalc): this obviously shouldn't be just a lazy define.
-#define PN532
+#define RC522
 
 void
 rfid_implement(void)
