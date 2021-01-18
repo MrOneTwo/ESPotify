@@ -3,14 +3,15 @@
 #include "rc522.h"
 
 
-typedef char* (*rfid_impl_init)(spi_device_handle_t spi);
+typedef esp_err_t (*rfid_impl_init)(spi_device_handle_t spi);
 
 typedef struct rfid_impl_t {
   rfid_impl_init init;
 } rfid_impl_t;
 
-rfid_impl_t rfid;
+static rfid_impl_t rfid;
 
+#define RC522
 
 void
 rfid_implement(void)

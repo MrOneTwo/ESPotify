@@ -1,4 +1,5 @@
 #include "rc522.h"
+#include "rfid_reader.h"
 #include "spotify.h"
 
 #include "freertos/FreeRTOS.h"
@@ -13,7 +14,7 @@
 #define RFID_OP_READ  0x0
 #define RFID_OP_WRITE 0x1
 
-static esp_timer_handle_t s_rc522_timer;
+static esp_timer_handle_t s_rfid_reader_timer;
 TaskHandle_t x_task_rfid_read_or_write = NULL;
 TaskHandle_t x_spotify = NULL;
 QueueHandle_t q_rfid_to_spotify = NULL;
@@ -190,12 +191,12 @@ void tasks_init(void)
 esp_err_t scanning_timer_resume()
 {
   // 125000 microseconds means 8Hz.
-  return scanning_timer_running ? ESP_OK : esp_timer_start_periodic(s_rc522_timer, 125000);
+  return scanning_timer_running ? ESP_OK : esp_timer_start_periodic(s_rfid_reader_timer, 125000);
 }
 
 esp_err_t scanning_timer_pause()
 {
-  return ! scanning_timer_running ? ESP_OK : esp_timer_stop(s_rc522_timer);
+  return ! scanning_timer_running ? ESP_OK : esp_timer_stop(s_rfid_reader_timer);
 }
 
 void tasks_start(void)
@@ -208,7 +209,7 @@ void tasks_start(void)
   };
 
   // Not checking return value here because I can't imagine when this would fail (hubris?).
-  esp_timer_create(&timer_args, &s_rc522_timer);
+  esp_timer_create(&timer_args, &s_rfid_reader_timer);
 
   scanning_timer_resume();
   return;
