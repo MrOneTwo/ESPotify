@@ -1,20 +1,22 @@
 # Michal Ciesielski 2021
 # Configuration file for ESP32 Spotify module.
 
-config SPOTIFY_CLIENT_ID
-    string "Spotify client ID"
-    default "EMPTY"
-    help
-        Spotify's client ID
+menu "Spotify component"
+    config SPOTIFY_CLIENT_ID
+        string "Spotify client ID"
+        default "EMPTY"
+        help
+            Spotify's client ID
 
-config SPOTIFY_CLIENT_SECRET
-    string "Spotify client secret"
-    default "EMPTY"
-    help
-        Spotify's client secret
+    config SPOTIFY_CLIENT_SECRET
+        string "Spotify client secret"
+        default "EMPTY"
+        help
+            Spotify's client secret
 
-config SPOTIFY_REFRESH_TOKEN
-    string "Spotify refresh token"
-    default "EMPTY"
-    help
-        Spotify's refresh token
+    config SPOTIFY_REFRESH_TOKEN
+        string "Spotify refresh token"
+        default "EMPTY"
+        help
+            Spotify's refresh token
+endmenu

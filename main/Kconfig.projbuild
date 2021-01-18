@@ -1,7 +1,7 @@
 # Michal Ciesielski 2021
 # Configuration file for ESPotify project.
 
-menu "Example Configuration"
+menu "ESPotify project configuration"
 
     config ESP_WIFI_SSID
         string "WiFi SSID"
