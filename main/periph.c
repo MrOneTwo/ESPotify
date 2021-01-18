@@ -50,13 +50,13 @@ periph_get_spi_handle(void)
 }
 
 void
-init_spi()
+periph_init_spi()
 {
   esp_err_t ret;
 
   spi_bus_config_t buscfg = {
       .miso_io_num = PIN_NUM_MISO,
-     .mosi_io_num = PIN_NUM_MOSI,
+      .mosi_io_num = PIN_NUM_MOSI,
       .sclk_io_num = PIN_NUM_CLK,
       .quadwp_io_num = -1,
       .quadhd_io_num = -1,
@@ -90,8 +90,8 @@ init_spi()
   ESP_ERROR_CHECK(ret);
 }
 
-void
-init_gpio(void(*gpio_cb)(void* arg))
+static void
+periph_init_gpio(void(*gpio_cb)(void* arg))
 {
   esp_err_t ret;
 
@@ -115,6 +115,6 @@ init_gpio(void(*gpio_cb)(void* arg))
 
 void periph_init(void(*gpio_cb)(void* arg))
 {
-  init_gpio(gpio_cb);
-  init_spi();
+  periph_init_gpio(gpio_cb);
+  periph_init_spi();
 }
