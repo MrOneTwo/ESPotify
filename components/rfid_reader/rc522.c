@@ -423,7 +423,7 @@ rc522_anti_collision(uint8_t cascade_level)
 
   if (resp.data == NULL)
   {
-    return FAILURE;
+    return false;
   }
 
   // 3. Handle the ANTI COLLISION command response.

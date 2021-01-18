@@ -40,7 +40,7 @@ static void task_rfid_scanning(void* arg)
 
   if (picc_present)
   {
-    bool status = rc522_anti_collision(1);
+    bool status = rfid_anti_collision(1);
     xTaskNotify(x_task_rfid_read_or_write, reading_or_writing, eSetValueWithOverwrite);
     reading_or_writing = RFID_OP_READ;
   }
