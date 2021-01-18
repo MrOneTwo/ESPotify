@@ -28,8 +28,7 @@ pip3 install -r requirements.txt
 And then build the project:
 
 ```sh
-export IDF_PATH=path/to/esp-idf
-source export.sh
+source ~/esp/esp-idf/export.sh
 mkdir build && cd build
 cmake .. -G Ninja
 ninja
@@ -39,9 +38,17 @@ ninja
 
 ### RFID
 
-- [x] Support for tags with 4 byte UID
-- [ ] Support for tags with 7 byte UID (implemented; not tested)
-- [ ] Support for tags with 10 byte UID (implemented; not tested)
+Currently, readers based on two chips are targetted: MFRC522, PN532.
+
+- [ ] MFRC522 driver
+  - [x] Mifare PICCs (ISO14443A) with 4 byte UID
+  - [ ] Mifare PICCs (ISO14443A) with 7 byte UID (implemented; not tested)
+  - [ ] Mifare PICCs (ISO14443A) with 10 byte UID (implemented; not tested)
+
+- [ ] PN532
+  - [ ] Mifare PICCs with 4 byte UID
+  - [ ] Mifare PICCs with 7 byte UID (implemented; not tested)
+  - [ ] Mifare PICCs with 10 byte UID (implemented; not tested)
 
 ### Spotify
 
