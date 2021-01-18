@@ -18,7 +18,7 @@
 #include "spotify.h"
 #include "shared.h"
 #include "rfid_reader.h"
-#include "hardware.h"
+#include "periph.h"
 #include "tasks.h"
 
 #define MIN(a, b) (a <= b ? a : b)
@@ -319,8 +319,8 @@ void app_main(void)
   }
   ESP_ERROR_CHECK(ret);
 
-  hardware_init(gpio_isr_callback);
-  spi_device_handle_t spi = hardware_get_spi_handle();
+  periph_init(gpio_isr_callback);
+  spi_device_handle_t spi = periph_get_spi_handle();
   rfid_implement();
   if (rfid_init(spi) != ESP_OK)
   {

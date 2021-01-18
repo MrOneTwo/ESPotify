@@ -1,6 +1,6 @@
 idf_component_register(SRCS
                        "espotify.c"
-                       "hardware.c"
+                       "periph.c"
                        "tasks.c"
                        "shared.c"
                        INCLUDE_DIRS "."

@@ -43,35 +43,20 @@ static void spi_pretransfer_callback(spi_transaction_t *t)
 //   }
 // }
 
-spi_device_handle_t hardware_get_spi_handle(void)
+spi_device_handle_t
+periph_get_spi_handle(void)
 {
   return _spi;
 }
 
-void hardware_init(void(*gpio_cb)(void* arg))
+void
+init_spi()
 {
   esp_err_t ret;
 
-  // GPIO
-  gpio_config_t io_conf = {
-    .intr_type = GPIO_INTR_NEGEDGE,
-    .pin_bit_mask = GPIO_INPUT_PIN_SEL,
-    .mode = GPIO_MODE_INPUT,
-    .pull_down_en = 0,
-    .pull_up_en = 1,
-  };
-  ret = gpio_config(&io_conf);
-  ESP_ERROR_CHECK(ret);
-
-  ret = gpio_install_isr_service(ESP_INTR_FLAG_EDGE);
-  ESP_ERROR_CHECK(ret);
-  ret = gpio_isr_handler_add(GPIO_IRQ_PIN, gpio_cb, (void*)(&_GPIO_IRQ_PIN));
-  ESP_ERROR_CHECK(ret);
-
-  // SPI
   spi_bus_config_t buscfg = {
       .miso_io_num = PIN_NUM_MISO,
-      .mosi_io_num = PIN_NUM_MOSI,
+     .mosi_io_num = PIN_NUM_MOSI,
       .sclk_io_num = PIN_NUM_CLK,
       .quadwp_io_num = -1,
       .quadhd_io_num = -1,
@@ -103,4 +88,33 @@ void hardware_init(void(*gpio_cb)(void* arg))
 
   ret = spi_bus_add_device(VSPI_HOST, &devcfg, &_spi);
   ESP_ERROR_CHECK(ret);
+}
+
+void
+init_gpio(void(*gpio_cb)(void* arg))
+{
+  esp_err_t ret;
+
+  // GPIO
+  gpio_config_t io_conf = {
+    .intr_type = GPIO_INTR_NEGEDGE,
+    .pin_bit_mask = GPIO_INPUT_PIN_SEL,
+    .mode = GPIO_MODE_INPUT,
+    .pull_down_en = 0,
+    .pull_up_en = 1,
+  };
+  ret = gpio_config(&io_conf);
+  ESP_ERROR_CHECK(ret);
+
+  ret = gpio_install_isr_service(ESP_INTR_FLAG_EDGE);
+  ESP_ERROR_CHECK(ret);
+  ret = gpio_isr_handler_add(GPIO_IRQ_PIN, gpio_cb, (void*)(&_GPIO_IRQ_PIN));
+  ESP_ERROR_CHECK(ret);
+}
+
+
+void periph_init(void(*gpio_cb)(void* arg))
+{
+  init_gpio(gpio_cb);
+  init_spi();
 }

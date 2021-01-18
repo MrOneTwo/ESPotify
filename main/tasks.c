@@ -8,7 +8,7 @@
 
 #include <string.h>
 
-// TODO(michalc): This is defined in the hardware.c... shouldn't be defined in two places.
+// TODO(michalc): This is defined in the periph.c... shouldn't be defined in two places.
 #define GPIO_IRQ_PIN 15
 
 #define RFID_OP_READ  0x0
