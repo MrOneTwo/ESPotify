@@ -17,6 +17,23 @@ static spi_device_handle_t pn532_spi;
 static esp_timer_handle_t pn532_timer;
 
 
+static bool
+pn532_is_ready()
+{
+  uint8_t cmd = PN532_SPI_STATREAD;
+  uint8_t reply;
+  
+  spi_transaction_t t = {};
+
+  // Yes, the length is in bits.
+  t.length = 8 * (1);
+  t.tx_buffer = (uint8_t*)&cmd;
+  t.rx_buffer = (uint8_t*)&reply;
+
+  esp_err_t ret = spi_device_transmit(pn532_spi, &t);
+
+  return reply == PN532_SPI_READY;
+}
 
 static esp_err_t
 pn532_write_command(uint8_t* cmd, uint8_t cmdlen)
