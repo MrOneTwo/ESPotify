@@ -62,6 +62,7 @@
 
 #define PN532_WAKEUP (0x55)
 
+// PN532 User Guide page 45.
 #define PN532_SPI_STAT_READ   (0x02)
 #define PN532_SPI_DATA_WRITE  (0x01)
 #define PN532_SPI_DATA_READ   (0x03)
