@@ -16,7 +16,9 @@
 static spi_device_handle_t pn532_spi;
 static esp_timer_handle_t pn532_timer;
 
-static void
+
+
+static esp_err_t
 pn532_write_command(uint8_t* cmd, uint8_t cmdlen)
 {
   int crc;
@@ -41,6 +43,16 @@ pn532_write_command(uint8_t* cmd, uint8_t cmdlen)
 
   *p++ = ~crc;
   *p++ = PN532_POSTAMBLE;
+  
+  spi_transaction_t t = {};
+
+  // Yes, the length is in bits.
+  t.length = 8 * (8 + cmdlen);
+  t.tx_buffer = (uint8_t*)packet;
+
+  esp_err_t ret = spi_device_transmit(pn532_spi, &t);
+  
+  return ret;
 }
 
 esp_err_t
