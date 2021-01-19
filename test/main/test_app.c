@@ -30,15 +30,15 @@ void app_main(void)
   // unity_run_tests_by_tag("[rc522]", false);
   // UNITY_END();
 
-  // print_banner("Running tests without [fails] tag");
-  // UNITY_BEGIN();
-  // unity_run_tests_by_tag("[pn532]", true);
-  // UNITY_END();
-
-  print_banner("Running all the registered tests");
+  print_banner("Running tests without [picc_present] tag");
   UNITY_BEGIN();
-  unity_run_all_tests();
+  unity_run_tests_by_tag("[picc_present]", true);
   UNITY_END();
+
+  // print_banner("Running all the registered tests");
+  // UNITY_BEGIN();
+  // unity_run_all_tests();
+  // UNITY_END();
 
   print_banner("Starting interactive test menu");
   /* This function will not return, and will be busy waiting for UART input.
