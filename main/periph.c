@@ -84,6 +84,16 @@ periph_init_spi()
       .quadhd_io_num = -1,
       .max_transfer_sz = 0, // 0 results in 4094 bytes.
   };
+  #if defined(CONFIG_RC522)
+  spi_device_interface_config_t devcfg = {
+      .clock_speed_hz = 10*1000*1000,           // PN532 max 5MHz, RC522 max 10MHz
+      .mode = 0,                                // SPI mode 0
+      .spics_io_num = PIN_NUM_CS,               // CS pin
+      .queue_size = 7,                          // transactions queue size
+      .pre_cb = spi_pretransfer_callback,       // pre transfer to toggle CS
+      .flags = SPI_DEVICE_HALFDUPLEX
+  };
+  #elif defined(CONFIG_PN532)
   spi_device_interface_config_t devcfg = {
       .clock_speed_hz = 5*1000*1000,            // PN532 max 5MHz, RC522 max 10MHz
       .mode = 0,                                // SPI mode 0
@@ -92,6 +102,7 @@ periph_init_spi()
       .pre_cb = spi_pretransfer_callback,       // pre transfer to toggle CS
       .flags = SPI_DEVICE_HALFDUPLEX | SPI_DEVICE_TXBIT_LSBFIRST | SPI_DEVICE_RXBIT_LSBFIRST
   };
+  #endif
 
   ret = spi_bus_initialize(VSPI_HOST, &buscfg, 0);
   switch (ret)

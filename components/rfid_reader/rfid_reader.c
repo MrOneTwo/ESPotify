@@ -16,17 +16,15 @@ typedef struct rfid_impl_t {
 
 static rfid_impl_t rfid;
 
-// TODO(michalc): this obviously shouldn't be just a lazy define.
-#define RC522
 
 void
 rfid_implement(void)
 {
-#if defined(RC522)
+#if defined (CONFIG_RC522)
   rfid.init = rc522_init;
   rfid.test_picc_presence = rc522_test_picc_presence;
   rfid.anti_collision = rc522_anti_collision;
-#elif defined(PN532)
+#elif defined (CONFIG_PN532)
   rfid.init = pn532_init;
   rfid.test_picc_presence = pn532_test_picc_presence;
   rfid.anti_collision = pn532_anti_collision;
