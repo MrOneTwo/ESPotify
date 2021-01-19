@@ -3,6 +3,7 @@
 
 #include "unity.h"
 
+#include "periph.h"
 
 static void print_banner(const char* text)
 {
@@ -11,6 +12,7 @@ static void print_banner(const char* text)
 
 void app_main(void)
 {
+  periph_init();
 
   /* These are the different ways of running registered tests.
    * In practice, only one of them is usually needed.
