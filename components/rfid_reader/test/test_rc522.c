@@ -16,8 +16,6 @@ TEST_CASE("rc522 init", "[rc522]")
 
 TEST_CASE("rc522 init NULL", "[rc522]")
 {
-  spi_device_handle_t spi = periph_get_spi_handle();
-
   TEST_ASSERT_EQUAL(ESP_FAIL, rc522_init(NULL));
 }
 

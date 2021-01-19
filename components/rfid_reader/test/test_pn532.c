@@ -55,7 +55,5 @@ TEST_CASE("pn532 build information frame", "[pn532]")
 
 TEST_CASE("pn532 init NULL", "[pn532]")
 {
-  spi_device_handle_t spi = periph_get_spi_handle();
-
   TEST_ASSERT_EQUAL(ESP_FAIL, pn532_init(NULL));
 }
