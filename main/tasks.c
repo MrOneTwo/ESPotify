@@ -1,6 +1,7 @@
 #include "rc522.h"  // TODO(michalc): remove this when fully ported to rfid_reader
 #include "rfid_reader.h"
 #include "spotify.h"
+#include "periph.h"
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -22,17 +23,6 @@ QueueHandle_t q_rfid_to_spotify = NULL;
 bool scanning_timer_running = false;
 uint8_t reading_or_writing = RFID_OP_READ;
 
-// NOTE(michalc): I'm not really happy with this being here. I wanted this scope to be only
-// about tasks. It is what it is.
-void gpio_isr_callback(void* arg)
-{
-  uint32_t gpio_num = *(uint32_t*)arg;
-  // Next operation will be writing to a PICC.
-  if (gpio_num == GPIO_IRQ_PIN)
-  {
-    reading_or_writing = RFID_OP_WRITE;
-  }
-}
 
 static void task_rfid_scanning(void* arg)
 {
@@ -41,6 +31,7 @@ static void task_rfid_scanning(void* arg)
   if (picc_present)
   {
     bool status = rfid_anti_collision(1);
+    reading_or_writing = periph_get_button_state(1) == 1 ? RFID_OP_WRITE : RFID_OP_READ;
     xTaskNotify(x_task_rfid_read_or_write, reading_or_writing, eSetValueWithOverwrite);
     reading_or_writing = RFID_OP_READ;
   }

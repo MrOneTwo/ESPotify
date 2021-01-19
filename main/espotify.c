@@ -319,7 +319,7 @@ void app_main(void)
   }
   ESP_ERROR_CHECK(ret);
 
-  periph_init(gpio_isr_callback);
+  periph_init();
   spi_device_handle_t spi = periph_get_spi_handle();
   rfid_implement();
   if (rfid_init(spi) != ESP_OK)

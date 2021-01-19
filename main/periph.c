@@ -24,15 +24,37 @@
 
 #define GPIO_IRQ_PIN 15  // TODO(michalc): choose a pin
 #define GPIO_INPUT_PIN_SEL  (1ULL << GPIO_IRQ_PIN)
-const uint32_t _GPIO_IRQ_PIN = 15U;
+// const uint32_t _GPIO_IRQ_PIN = 15U;
+uint8_t _GPIO_IRQ_PIN[2] = {15U, 0U};
 
 
 spi_device_handle_t _spi;
 
-static void spi_pretransfer_callback(spi_transaction_t *t)
+static void
+spi_pretransfer_callback(spi_transaction_t *t)
 {
   int dc=(int)t->user;
   gpio_set_level(PIN_NUM_CS, dc);
+}
+
+static void
+gpio_isr_callback(void* arg)
+{
+  uint8_t gpio_num = ((uint8_t*)arg)[0];
+
+  if (gpio_num == GPIO_IRQ_PIN)
+  {
+    ((uint8_t*)arg)[1] = 1;
+  }
+}
+
+// TODO(michalc): this probably should be more robust.
+uint8_t
+periph_get_button_state(uint8_t clear)
+{
+  uint8_t ret = _GPIO_IRQ_PIN[1];
+  if (clear) _GPIO_IRQ_PIN[1] = 0U;
+  return ret;
 }
 
 // static void gpio_isr_handler(void* arg)
@@ -91,7 +113,7 @@ periph_init_spi()
 }
 
 static void
-periph_init_gpio(void(*gpio_cb)(void* arg))
+periph_init_gpio(void(*gpio_cb)(void* arg), void* gpio_cb_arg)
 {
   esp_err_t ret;
 
@@ -108,13 +130,13 @@ periph_init_gpio(void(*gpio_cb)(void* arg))
 
   ret = gpio_install_isr_service(ESP_INTR_FLAG_EDGE);
   ESP_ERROR_CHECK(ret);
-  ret = gpio_isr_handler_add(GPIO_IRQ_PIN, gpio_cb, (void*)(&_GPIO_IRQ_PIN));
+  ret = gpio_isr_handler_add(GPIO_IRQ_PIN, gpio_cb, (void*)(_GPIO_IRQ_PIN));
   ESP_ERROR_CHECK(ret);
 }
 
 
-void periph_init(void(*gpio_cb)(void* arg))
+void periph_init()
 {
-  periph_init_gpio(gpio_cb);
+  periph_init_gpio(gpio_isr_callback, (void*)_GPIO_IRQ_PIN);
   periph_init_spi();
 }
