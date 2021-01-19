@@ -5,6 +5,7 @@
 #ifndef PERIPH_H
 #define PERIPH_H
 
+#include "driver/spi_master.h"
 
 void periph_init();
 
