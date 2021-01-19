@@ -4,9 +4,10 @@
 #include "driver/gpio.h"
 
 #include "pn532.h"
+#include "periph.h"
 
 
-TEST_CASE("pn532 build information frame", "pn532")
+TEST_CASE("pn532 build information frame", "[pn532]")
 {
   uint8_t cmd[1] = {PN532_COMMAND_GETFIRMWAREVERSION};
   uint8_t cmdlen = 1;
@@ -50,4 +51,11 @@ TEST_CASE("pn532 build information frame", "pn532")
 
   TEST_ASSERT_EQUAL(0x0, 0xFF & (crc + packet[8 + cmdlen - 2]));
   TEST_ASSERT_EQUAL(PN532_POSTAMBLE, packet[8 + cmdlen - 1]);
+}
+
+TEST_CASE("pn532 init NULL", "[pn532]")
+{
+  spi_device_handle_t spi = periph_get_spi_handle();
+
+  TEST_ASSERT_EQUAL(ESP_FAIL, pn532_init(NULL));
 }
