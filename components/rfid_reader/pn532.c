@@ -57,7 +57,7 @@ pn532_is_ready()
     esp_err_t ret = spi_device_transmit(pn532_spi, &t);
   }
 
-  return response & PN532_SPI_READY;
+  return (response & PN532_SPI_READY);
 }
 
 static esp_err_t

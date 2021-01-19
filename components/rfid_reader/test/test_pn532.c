@@ -77,6 +77,8 @@ TEST_CASE("pn532 is ready", "[pn532]")
 
   esp_err_t ret = spi_device_transmit(spi, &t);
 
+  printf("Response to pn532: %x\n", response);
+
   TEST_ASSERT_EQUAL(ESP_OK, ret);
-  TEST_ASSERT_EQUAL(PN532_SPI_READY, response & PN532_SPI_READY);
+  TEST_ASSERT_EQUAL(PN532_SPI_READY, (response & PN532_SPI_READY));
 }

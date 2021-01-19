@@ -90,7 +90,7 @@ periph_init_spi()
       .spics_io_num = PIN_NUM_CS,               // CS pin
       .queue_size = 7,                          // transactions queue size
       .pre_cb = spi_pretransfer_callback,       // pre transfer to toggle CS
-      .flags = SPI_DEVICE_HALFDUPLEX
+      .flags = SPI_DEVICE_HALFDUPLEX | SPI_DEVICE_TXBIT_LSBFIRST | SPI_DEVICE_RXBIT_LSBFIRST
   };
 
   ret = spi_bus_initialize(VSPI_HOST, &buscfg, 0);
