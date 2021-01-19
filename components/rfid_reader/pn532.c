@@ -43,7 +43,7 @@ bool
 pn532_is_ready()
 {
   uint8_t cmd = PN532_SPI_STAT_READ;
-  uint8_t response;
+  uint8_t response = 0;
 
   {
     spi_transaction_t t = {};
