@@ -70,10 +70,13 @@
 
 esp_err_t pn532_init(spi_device_handle_t spi);
 
+bool pn532_say_hello(void);
+
 bool pn532_test_picc_presence(void);
 
 bool pn532_anti_collision(uint8_t cascade_level);
 
+bool pn532_read_fw_version(void);
 
 
 // PRIVATE BUT TESTED

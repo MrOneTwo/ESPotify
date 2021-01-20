@@ -142,20 +142,24 @@ pn532_read_fw_version()
 esp_err_t
 pn532_init(spi_device_handle_t spi)
 {
-  esp_err_t ret = ESP_FAIL;
-
   if (spi != NULL)
   {
     pn532_spi = spi;
+    return ESP_OK;
+  }
+  return ESP_FAIL;
+}
 
-    if(pn532_read_fw_version())
-    {
-      printf("%s", "PN532 present!\n");
-      ret = ESP_OK;
-    }
+bool
+pn532_say_hello()
+{
+  if(pn532_read_fw_version())
+  {
+    printf("%s", "PN532 present!\n");
+    return true;
   }
 
-  return ret;
+  return false;
 }
 
 bool

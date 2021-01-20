@@ -24,6 +24,9 @@ rfid_implement(void);
 esp_err_t
 rfid_init(spi_device_handle_t spi);
 
+bool
+rfid_say_hello(void);
+
 // TODO(michalc): not implemented yet
 bool
 rfid_test_picc_presence(void);

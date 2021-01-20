@@ -61,47 +61,49 @@ picc_t picc;
 esp_err_t
 rc522_init(spi_device_handle_t spi)
 {
-  esp_err_t ret = ESP_OK;
-
   if (spi != NULL)
   {
     rc522_spi = spi;
-
-    // RW test
-    rc522_write(RC522_REG_MOD_WIDTH, 0x25);
-    if (rc522_read(RC522_REG_MOD_WIDTH) != 0x25)
-    {
-      ret = ESP_FAIL;
-    }
-
-    rc522_write(RC522_REG_MOD_WIDTH, 0x26);
-    if (rc522_read(RC522_REG_MOD_WIDTH) != 0x26)
-    {
-      ret = ESP_FAIL;
-    }
-
-    if (ret != ESP_OK)
-    {
-      return ret;
-    }
-    // End of RW test
-
-    rc522_write(RC522_REG_COMMAND, 0x0F);
-    rc522_write(RC522_REG_TIMER_MODE, 0x8D);
-    rc522_write(RC522_REG_TIMER_PRESCALER, 0x3E);
-    rc522_write(RC522_REG_TIMER_RELOAD_2, 0x1E);
-    rc522_write(RC522_REG_TIMER_RELOAD_1, 0x00);
-    rc522_write(RC522_REG_TX_ASK, 0x40);
-    rc522_write(RC522_REG_MODE, 0x3D);
-
-    rc522_antenna_on();
-
-    printf("RC522 firmware 0x%x\n", rc522_fw_version());
+    return ESP_OK;
   }
-  else
+  return ESP_FAIL;
+}
+
+bool
+rc522_say_hello()
+{
+  esp_err_t ret = ESP_OK;
+
+  // RW test
+  rc522_write(RC522_REG_MOD_WIDTH, 0x25);
+  if (rc522_read(RC522_REG_MOD_WIDTH) != 0x25)
   {
     ret = ESP_FAIL;
   }
+
+  rc522_write(RC522_REG_MOD_WIDTH, 0x26);
+  if (rc522_read(RC522_REG_MOD_WIDTH) != 0x26)
+  {
+    ret = ESP_FAIL;
+  }
+
+  if (ret != ESP_OK)
+  {
+    return ret;
+  }
+  // End of RW test
+
+  rc522_write(RC522_REG_COMMAND, 0x0F);
+  rc522_write(RC522_REG_TIMER_MODE, 0x8D);
+  rc522_write(RC522_REG_TIMER_PRESCALER, 0x3E);
+  rc522_write(RC522_REG_TIMER_RELOAD_2, 0x1E);
+  rc522_write(RC522_REG_TIMER_RELOAD_1, 0x00);
+  rc522_write(RC522_REG_TX_ASK, 0x40);
+  rc522_write(RC522_REG_MODE, 0x3D);
+
+  rc522_antenna_on();
+
+  printf("RC522 firmware 0x%x\n", rc522_fw_version());
 
   return ret;
 }
