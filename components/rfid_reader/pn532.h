@@ -70,16 +70,17 @@
 
 esp_err_t pn532_init(spi_device_handle_t spi);
 
-bool pn532_say_hello(void);
-
 bool pn532_test_picc_presence(void);
 
 bool pn532_anti_collision(uint8_t cascade_level);
 
 bool pn532_read_fw_version(void);
 
+bool pn532_say_hello(void);
 
-// PRIVATE BUT TESTED
-bool pn532_is_ready();
+
+// PRIVATE BUT EXPOSED BECAUSE TESTED
+bool _pn532_is_ready();
+void _pn532_build_information_frame(uint8_t*buf, uint8_t* cmd, uint8_t cmdlen);
 
 #endif // PN532_H

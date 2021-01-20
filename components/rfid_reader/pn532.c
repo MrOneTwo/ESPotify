@@ -40,7 +40,7 @@ pn532_read_ack()
 }
 
 bool
-pn532_is_ready()
+_pn532_is_ready()
 {
   uint8_t cmd = PN532_SPI_STAT_READ;
   uint8_t response = 0;
@@ -60,25 +60,24 @@ pn532_is_ready()
   return (response & PN532_SPI_READY);
 }
 
-static esp_err_t
-pn532_write_command(uint8_t* cmd, uint8_t cmdlen)
+void
+_pn532_build_information_frame(uint8_t* buf, uint8_t* cmd, uint8_t cmdlen)
 {
   int crc;
   const uint8_t frame_size = 8 + cmdlen;
-  uint8_t packet[frame_size];
 
-  packet[0] = PN532_SPI_DATA_WRITE;
-  packet[1] = PN532_PREAMBLE;
-  packet[2] = PN532_START_CODE1;
-  packet[3] = PN532_START_CODE2;
+  buf[0] = PN532_SPI_DATA_WRITE;
+  buf[1] = PN532_PREAMBLE;
+  buf[2] = PN532_START_CODE1;
+  buf[3] = PN532_START_CODE2;
   // cmdlen is the TFI + data fields.
-  packet[4] = cmdlen + 1;
-  packet[5] = ~cmdlen;
-  packet[6] = PN532_HOST_TO_PN532;
+  buf[4] = cmdlen + 1;
+  buf[5] = ~cmdlen;
+  buf[6] = PN532_HOST_TO_PN532;
 
   crc = PN532_PREAMBLE + PN532_START_CODE1 + PN532_START_CODE2 + PN532_HOST_TO_PN532;
 
-  uint8_t* p = &packet[7];
+  uint8_t* p = &buf[7];
   for (uint8_t i = 0; i < cmdlen; i++)
   {
     *p = cmd[i];
@@ -88,6 +87,15 @@ pn532_write_command(uint8_t* cmd, uint8_t cmdlen)
 
   *p++ = ~crc;
   *p = PN532_POSTAMBLE;
+}
+
+static esp_err_t
+pn532_write_command(uint8_t* cmd, uint8_t cmdlen)
+{
+  const uint8_t frame_size = 8 + cmdlen;
+  uint8_t packet[frame_size];
+
+  _pn532_build_information_frame(packet, cmd, cmdlen);
 
   esp_err_t ret = ESP_FAIL;
   {
@@ -129,12 +137,12 @@ pn532_read_fw_version()
   pn532_write_command(&cmd, 1);
 
   // TODO(michalc): add some sleep and timeout.
-  while(!pn532_is_ready());
+  while(!_pn532_is_ready());
 
   if(!pn532_read_ack()) return 0;
 
   // TODO(michalc): add some sleep and timeout.
-  while(!pn532_is_ready());
+  while(!_pn532_is_ready());
 
   uint8_t response[12];
   pn532_read_n(response, 12);
