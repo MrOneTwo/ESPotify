@@ -34,7 +34,9 @@ static void
 spi_pretransfer_callback(spi_transaction_t *t)
 {
   int dc=(int)t->user;
-  gpio_set_level(PIN_NUM_CS, dc);
+  // TODO(michalc): I don't know if this is necessary. I never specified the post callback and yet
+  // the CS works ok. In the SPI example this is used to set a pin state but it's for a DC pin.
+  // gpio_set_level(PIN_NUM_CS, dc);
 }
 
 static void
