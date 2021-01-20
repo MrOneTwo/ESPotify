@@ -21,6 +21,7 @@ static esp_timer_handle_t rc522_timer;
 //
 
 /*
+ * Calculate CRC for data on the RC522 side.
  */
 static void rc522_calculate_crc(uint8_t *data, uint8_t data_size, uint8_t* crc_buf);
 
