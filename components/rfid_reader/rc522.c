@@ -72,24 +72,19 @@ rc522_init(spi_device_handle_t spi)
 bool
 rc522_say_hello()
 {
-  esp_err_t ret = ESP_OK;
+  bool ret = 1;
 
   // RW test
   rc522_write(RC522_REG_MOD_WIDTH, 0x25);
   if (rc522_read(RC522_REG_MOD_WIDTH) != 0x25)
   {
-    ret = ESP_FAIL;
+    ret = 0;
   }
 
   rc522_write(RC522_REG_MOD_WIDTH, 0x26);
   if (rc522_read(RC522_REG_MOD_WIDTH) != 0x26)
   {
-    ret = ESP_FAIL;
-  }
-
-  if (ret != ESP_OK)
-  {
-    return ret;
+    ret = 0;
   }
   // End of RW test
 
