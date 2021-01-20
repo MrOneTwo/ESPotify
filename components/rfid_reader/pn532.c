@@ -64,34 +64,37 @@ static esp_err_t
 pn532_write_command(uint8_t* cmd, uint8_t cmdlen)
 {
   int crc;
-  uint8_t packet[8 + cmdlen];
-  uint8_t* p = packet;
+  const uint8_t frame_size = 8 + cmdlen;
+  uint8_t packet[frame_size];
 
-  *p++ = PN532_SPI_DATA_WRITE;
-  *p++ = PN532_PREAMBLE;
-  *p++ = PN532_START_CODE1;
-  *p++ = PN532_START_CODE2;
-  *p++ = cmdlen;
-  *p++ = ~cmdlen + 1;
-  *p++ = PN532_HOST_TO_PN532;
+  packet[0] = PN532_SPI_DATA_WRITE;
+  packet[1] = PN532_PREAMBLE;
+  packet[2] = PN532_START_CODE1;
+  packet[3] = PN532_START_CODE2;
+  // cmdlen is the TFI + data fields.
+  packet[4] = cmdlen + 1;
+  packet[5] = ~cmdlen;
+  packet[6] = PN532_HOST_TO_PN532;
 
   crc = PN532_PREAMBLE + PN532_START_CODE1 + PN532_START_CODE2 + PN532_HOST_TO_PN532;
 
-  for (uint8_t i = 0; i < cmdlen - 1; i++)
+  uint8_t* p = &packet[7];
+  for (uint8_t i = 0; i < cmdlen; i++)
   {
-    *p++ = cmd[i];
+    *p = cmd[i];
     crc += cmd[i];
+    p++;
   }
 
   *p++ = ~crc;
-  *p++ = PN532_POSTAMBLE;
+  *p = PN532_POSTAMBLE;
 
   esp_err_t ret = ESP_FAIL;
   {
     spi_transaction_t t = {};
 
     // Yes, the length is in bits.
-    t.length = 8 * (8 + cmdlen);
+    t.length = 8 * (frame_size  + cmdlen);
     t.tx_buffer = (uint8_t*)packet;
 
     ret = spi_device_transmit(pn532_spi, &t);
