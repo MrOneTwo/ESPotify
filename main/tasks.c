@@ -41,9 +41,12 @@ static void task_rfid_scanning(void* arg)
 
 void task_rfid_read_or_write(void* pvParameters)
 {
+  uint8_t spotify_should_act = 0;
+  uint32_t reading_or_writing = RFID_OP_READ;
+
   while (1)
   {
-    uint32_t reading_or_writing;
+    spotify_should_act = 0;
 
     // Wait indefinitely for a notification from the scanning task.
     (void)xTaskNotifyWait(0x0,
@@ -54,15 +57,17 @@ void task_rfid_read_or_write(void* pvParameters)
 
     const uint8_t sector = 2;
     static uint8_t block = 4 * sector - 4;
-    const uint8_t key[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 
-    // Authenticate sector access.
-    rc522_authenticate(PICC_CMD_MF_AUTH_KEY_A, block, key);
+    {
+      const uint8_t key[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+
+      // Authenticate sector access.
+      rc522_authenticate(PICC_CMD_MF_AUTH_KEY_A, block, key);
+    }
 
     // 16 bytes and 2 bytes for CRC.
     uint8_t transfer_buffer[18] = {};
     const char* song_id = spotify_playback.song_id;
-    uint8_t spotify_should_act = 0;
     uint8_t msg[32] = {};
 
     if (reading_or_writing == RFID_OP_WRITE && spotify_playback.is_playing != 0xFF)

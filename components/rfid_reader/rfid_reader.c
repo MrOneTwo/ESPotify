@@ -5,7 +5,7 @@
 
 
 typedef esp_err_t (*rfid_impl_init)(spi_device_handle_t spi);
-typedef esp_err_t (*rfid_impl_say_hello)(void);
+typedef bool (*rfid_impl_say_hello)(void);
 typedef bool (*rfid_impl_test_picc_presence)(void);
 typedef bool (*rfid_impl_anti_collision)(uint8_t cascade_level);
 
