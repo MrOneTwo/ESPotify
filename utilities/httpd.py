@@ -36,6 +36,7 @@ my_server = socketserver.TCPServer(("", PORT), handler_object)
 
 # Star the server
 try:
+  print(f"Starting webserver on {PORT}")
   my_server.serve_forever()
 except:
   print("Shutting down...")
