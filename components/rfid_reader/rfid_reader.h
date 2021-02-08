@@ -24,6 +24,7 @@ rfid_implement(void);
 esp_err_t
 rfid_init(spi_device_handle_t spi);
 
+// Return true if the RFID reader is present.
 bool
 rfid_say_hello(void);
 

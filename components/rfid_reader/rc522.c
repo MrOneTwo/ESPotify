@@ -73,19 +73,19 @@ rc522_init(spi_device_handle_t spi)
 bool
 rc522_say_hello()
 {
-  bool ret = 1;
+  bool ret = true;
 
   // RW test
   rc522_write(RC522_REG_MOD_WIDTH, 0x25);
   if (rc522_read(RC522_REG_MOD_WIDTH) != 0x25)
   {
-    ret = 0;
+    ret = false;
   }
 
   rc522_write(RC522_REG_MOD_WIDTH, 0x26);
   if (rc522_read(RC522_REG_MOD_WIDTH) != 0x26)
   {
-    ret = 0;
+    ret = false;
   }
   // End of RW test
 
