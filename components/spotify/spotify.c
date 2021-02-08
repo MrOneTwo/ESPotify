@@ -18,6 +18,11 @@ spotify_playback_t spotify_playback;
  */
 static esp_err_t spotify_http_event_handler(esp_http_client_event_t *evt);
 
+// TODO(michalc): the response_buf is pretty big... it would be better to put it on the heap.
+#define RESPONSE_BUF_SIZE (1024 * 5)
+// This buffer is local to this scope but the data is persistent.
+static char* response_buf = NULL;
+
 
 void spotify_init()
 {
@@ -33,6 +38,9 @@ void spotify_init()
   snprintf(spotify.client_id, sizeof(spotify.client_id), "%s", CONFIG_SPOTIFY_CLIENT_ID);
   snprintf(spotify.client_secret, sizeof(spotify.client_secret), "%s", CONFIG_SPOTIFY_CLIENT_SECRET);
   snprintf(spotify.refresh_token, sizeof(spotify.refresh_token), "%s", CONFIG_SPOTIFY_REFRESH_TOKEN);
+
+  // We are assuming the init function is called only once. Otherwise we have a memory leak.
+  response_buf = (char*)malloc(RESPONSE_BUF_SIZE);
 }
 
 uint8_t spotify_is_fresh_access_token()
@@ -168,11 +176,7 @@ void spotify_next_song()
 
 static esp_err_t spotify_http_event_handler(esp_http_client_event_t *evt)
 {
-  // TODO(michalc): the response_buf is pretty big... it would be better to put it on the heap.
-  #define RESPONSE_BUF_SIZE (1024 * 5)
-  // This buffer is local to this scope but the data is persistent.
-  static char response_buf[RESPONSE_BUF_SIZE] = {};
-  static uint32_t response_buf_tail = 0;
+  static uint32_t response_bytes_count = 0;
 
   switch(evt->event_id) {
     case HTTP_EVENT_ERROR:
@@ -191,10 +195,10 @@ static esp_err_t spotify_http_event_handler(esp_http_client_event_t *evt)
     case HTTP_EVENT_ON_DATA:
       ESP_LOGI(TAG, "HTTP_EVENT_ON_DATA, len=%d", evt->data_len);
       // Collect the data into a buffer.
-      memcpy(&response_buf[response_buf_tail], evt->data, evt->data_len);
-      response_buf_tail += evt->data_len;
+      memcpy(&response_buf[response_bytes_count], evt->data, evt->data_len);
+      response_bytes_count += evt->data_len;
 
-      if (response_buf_tail >= RESPONSE_BUF_SIZE)
+      if (response_bytes_count >= RESPONSE_BUF_SIZE)
       {
         ESP_LOGI(TAG, "Not enough space in the response_buf... that's a yikes!");
       }
@@ -205,7 +209,7 @@ static esp_err_t spotify_http_event_handler(esp_http_client_event_t *evt)
       break;
     case HTTP_EVENT_ON_FINISH:
       // Check if there is data present in the response_buf.
-      if (response_buf_tail)
+      if (response_bytes_count)
       {
         // cJSON_Parse mallocs memory! Remember to run cJSON_Delete.
         cJSON* response_json = cJSON_Parse(response_buf);
@@ -259,9 +263,9 @@ static esp_err_t spotify_http_event_handler(esp_http_client_event_t *evt)
           }
         }
 
-        printf("\n%.*s\n", RESPONSE_BUF_SIZE, response_buf);
+        printf("\n%.*s\n", response_bytes_count, response_buf);
         memset(response_buf, 0, RESPONSE_BUF_SIZE);
-        response_buf_tail = 0;
+        response_bytes_count = 0;
 
         cJSON* item = cJSON_GetObjectItem(response_json, "item");
         cJSON* artists = cJSON_GetObjectItem(item, "artists");

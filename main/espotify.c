@@ -322,10 +322,14 @@ void app_main(void)
   periph_init();
   spi_device_handle_t spi = periph_get_spi_handle();
   rfid_implement();
-  rfid_init(spi);
-  if (!rfid_say_hello())
+  if (rfid_init(spi) != ESP_OK)
   {
     ESP_LOGE(TAG, "Failed to init RFID reader!");
+  }
+
+  if (!rfid_say_hello())
+  {
+    ESP_LOGE(TAG, "Failed to greet RFID reader!");
   }
 
 

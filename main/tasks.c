@@ -33,6 +33,17 @@ static void task_rfid_scanning(void* arg)
   {
     bool status = rfid_anti_collision(1);
     reading_or_writing = periph_get_button_state(1) == 1 ? RFID_OP_WRITE : RFID_OP_READ;
+
+    ESP_LOGI("tasks", "PICC detected.");
+    if (reading_or_writing == RFID_OP_READ)
+    {
+      ESP_LOGI("tasks", "Notifying to read.");
+    }
+    else
+    {
+      ESP_LOGI("tasks", "Notifying to write.");
+    }
+
     xTaskNotify(x_task_rfid_read_or_write, reading_or_writing, eSetValueWithOverwrite);
     reading_or_writing = RFID_OP_READ;
   }
@@ -159,7 +170,7 @@ void tasks_init(void)
                           "task_rfid_read_or_write",    // Text name for the task.
                           8 * 1024 / 4,                 // Stack size in words, not bytes.
                           (void*) 1,                    // Parameter passed into the task.
-                          5,                            // Priority at which the task is created.
+                          6,                            // Priority at which the task is created.
                           &x_task_rfid_read_or_write);  // Used to pass out the created task's handle.
 
   if(xReturned == pdPASS)
@@ -169,7 +180,7 @@ void tasks_init(void)
 
   xReturned = xTaskCreate(&task_spotify,     // Function that implements the task.
                           "task_spotify",    // Text name for the task.
-                          32 * 1024 / 4,                 // Stack size in words, not bytes.
+                          16 * 1024 / 4,                 // Stack size in words, not bytes.
                           (void*) 1,                    // Parameter passed into the task.
                           5,                            // Priority at which the task is created.
                           &x_spotify);  // Used to pass out the created task's handle.
