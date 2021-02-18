@@ -63,17 +63,17 @@ TEST_CASE("rc522 read PICC's data", "[rc522][picc_present]")
   TEST_ASSERT_EQUAL(true, rc522_anti_collision(1));
 
   uint8_t block = 0;
-  uint8_t transfer_buffer[18] = {};
+  uint8_t picc_data[16] = {};
 
   const uint8_t key[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
   rc522_authenticate(PICC_CMD_MF_AUTH_KEY_A, block, key);
 
-  rc522_read_picc_data(block, transfer_buffer);
+  rc522_read_picc_data(block, picc_data);
   printf("\n---------");
   printf("\nData read from a PICC:\n");
-  for (uint8_t i = 0; i < 18; i++)
+  for (uint8_t i = 0; i < 16; i++)
   {
-    printf("%x ", transfer_buffer[i]);
+    printf("%x ", picc_data[i]);
   }
   printf("\n---------\n");
 
