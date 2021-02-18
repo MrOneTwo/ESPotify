@@ -129,6 +129,12 @@ void rc522_picc_write(rc522_commands_e cmd, uint8_t* data, uint8_t data_size, re
 bool rc522_test_picc_presence(void);
 
 /*
+ * Copy the last detected PICC's UID into buf. The UID's size in bytes gets saved
+ * in the size argument.
+ */
+void rc522_get_last_picc_uid(char buf[10], uint8_t* size);
+
+/*
  * This function tries to read the entire UID from the PICC. This is way more complicated than
  * one might expect, mostly because of different UID lengths (4, 7, 10 bytes) and a possiblity of
  * receiving partial byte. First be sure to set the PICC into Ready 1 state with the rc522_test_picc_presence().

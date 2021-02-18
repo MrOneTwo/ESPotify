@@ -59,6 +59,13 @@ typedef struct picc_t {
 
 picc_t picc;
 
+void
+rc522_get_last_picc_uid(char buf[10], uint8_t* size)
+{
+  *size = picc.uid_bits / 8;
+  memcpy(buf, picc.uid, picc.uid_bits / 8);
+}
+
 esp_err_t
 rc522_init(spi_device_handle_t spi)
 {

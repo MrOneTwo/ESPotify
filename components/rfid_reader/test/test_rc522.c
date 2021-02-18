@@ -42,6 +42,16 @@ TEST_CASE("rc522 anti collision", "[rc522][picc_present]")
   TEST_ASSERT_EQUAL(ESP_OK, rc522_init(spi));
   TEST_ASSERT_EQUAL(true, rc522_test_picc_presence());
   TEST_ASSERT_EQUAL(true, rc522_anti_collision(1));
+
+  char uid[10] = {};
+  uint8_t uid_size = 0;
+  rc522_get_last_picc_uid(uid, &uid_size);
+  printf("Detected PICC with UID: ");
+  for (int i = 0; i < uid_size; i++)
+  {
+    printf("%x ", uid[i]);
+  }
+  printf("\n");
 }
 
 TEST_CASE("rc522 read PICC's data", "[rc522][picc_present]")
