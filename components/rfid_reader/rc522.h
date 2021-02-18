@@ -88,12 +88,6 @@ typedef struct response_t {
 // A example callback that the user can register.
 void tag_handler(uint8_t* serial_no);
 
-void picc_data_to_useful_data();
-
-
-esp_err_t rc522_init(spi_device_handle_t spi);
-bool rc522_say_hello(void);
-
 esp_err_t rc522_write_n(uint8_t addr, uint8_t data_size, uint8_t *data);
 esp_err_t rc522_write(uint8_t addr , uint8_t val);
 uint8_t* rc522_read_n(uint8_t addr, uint8_t n) ;
@@ -102,6 +96,22 @@ esp_err_t rc522_clear_bitmask(uint8_t addr, uint8_t mask);
 status_e rc522_picc_halta(uint8_t halta);
 
 #define rc522_fw_version() rc522_read(RC522_REG_FW_VERSION)
+
+
+/*
+ * Init the rc522 module. No device communication is performed at this step.
+ *
+ * Return ESP_OK if the initialization succeeded, ESP_FAIL if it didn't.
+ */
+esp_err_t rc522_init(spi_device_handle_t spi);
+
+/*
+ * Test communication with the RC522 reader. This also turn on the antenna and
+ * reads the firmware version of the RC522 reader.
+ *
+ * Return true if the communication succeeded.
+ */
+bool rc522_say_hello(void);
 
 /*
  * Send a command to PICC (saved in data buffer). The cmd is usually RC522_CMD_TRANSCEIVE.
