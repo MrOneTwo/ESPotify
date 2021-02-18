@@ -111,20 +111,27 @@ status_e rc522_picc_halta(uint8_t halta);
  */
 void rc522_picc_write(rc522_commands_e cmd, uint8_t* data, uint8_t data_size, response_t* response);
 
+/*
+ * Sends a PICC_CMD_REQA to move the PICC from IDLE state into Ready 1 state.
+ *
+ * Return true when PICC responds with ATQA.
+ */
+bool rc522_test_picc_presence(void);
 
 /*
  * This function tries to read the entire UID from the PICC. This is way more complicated than
  * one might expect, mostly because of different UID lengths (4, 7, 10 bytes) and a possiblity of
- * receiving partial byte.
+ * receiving partial byte. First be sure to set the PICC into Ready 1 state with the rc522_test_picc_presence().
  *
  * This function is a recursive function which tries to handle all the cascading levels of reading
  * UID into a global variable.
  *
- * Returns SUCCESS if a full UID has been read.
+ * cascade_level - should be set to 1 when calling explicitly. It will internally call itself with
+ *                 increasing cascade_level, to fetch the entire UID.
+ *
+ * Returns true if a full UID has been read.
  */
 bool rc522_anti_collision(uint8_t cascade_level);
-
-bool rc522_test_picc_presence(void);
 
 void rc522_read_picc_data(uint8_t block_adress, uint8_t buffer[16]);
 void rc522_write_picc_data(uint8_t block_address, uint8_t buffer[18]);
