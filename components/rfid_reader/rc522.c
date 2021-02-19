@@ -361,7 +361,8 @@ status_e rc522_picc_reqa_or_wupa(uint8_t reqa_or_wupa)
 
   if(resp.size_bytes == 2 && resp.size_bits == 16)
   {
-    // A PICC has responded to REQA.
+    // A PICC has responded to REQA with ATQA.
+    // printf("ATQA: %02x %02x\n", resp.data[0], resp.data[1]);
     status = SUCCESS;
   }
 
