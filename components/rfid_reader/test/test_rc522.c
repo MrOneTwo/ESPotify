@@ -63,25 +63,87 @@ TEST_CASE("rc522 read PICC's data", "[rc522][picc_present]")
   spi_device_handle_t spi = periph_get_spi_handle();
 
   TEST_ASSERT_EQUAL(ESP_OK, rc522_init(spi));
-  TEST_ASSERT_EQUAL(true, rc522_picc_reqa_or_wupa(PICC_CMD_WUPA));
-  TEST_ASSERT_EQUAL(true, rc522_anti_collision(1));
 
-  uint8_t block = 0;
   uint8_t picc_data[16] = {};
-
   const uint8_t key[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
-  rc522_authenticate(PICC_CMD_MF_AUTH_KEY_A, block, key);
 
-  rc522_read_picc_data(block, picc_data);
-  printf("\n---------");
-  printf("\nData read from a PICC:\n");
-  for (uint8_t i = 0; i < 16; i++)
+  for (uint8_t sector = 0; sector < 16; sector++)
   {
-    printf("%x ", picc_data[i]);
-  }
-  printf("\n---------\n");
+    {
+      uint8_t block = 0 + sector * 4;
+      TEST_ASSERT_EQUAL(true, rc522_picc_reqa_or_wupa(PICC_CMD_WUPA));
+      TEST_ASSERT_EQUAL(true, rc522_anti_collision(1));
 
-  rc522_picc_halta(PICC_CMD_HALTA);
-  // Clear the MFCrypto1On bit.
-  rc522_clear_bitmask(RC522_REG_STATUS_2, 0x08);
+      rc522_authenticate(PICC_CMD_MF_AUTH_KEY_A, block, key);
+
+      rc522_read_picc_data(block, picc_data);
+      printf("%02d: ", block);
+      for (uint8_t i = 0; i < 16; i++)
+      {
+        printf("%02x ", picc_data[i]);
+      }
+      printf("\n");
+
+      rc522_picc_halta(PICC_CMD_HALTA);
+      // Clear the MFCrypto1On bit.
+      rc522_clear_bitmask(RC522_REG_STATUS_2, 0x08);
+    }
+    {
+      uint8_t block = 1 + sector * 4;
+      TEST_ASSERT_EQUAL(true, rc522_picc_reqa_or_wupa(PICC_CMD_WUPA));
+      TEST_ASSERT_EQUAL(true, rc522_anti_collision(1));
+
+      rc522_authenticate(PICC_CMD_MF_AUTH_KEY_A, block, key);
+
+      rc522_read_picc_data(block, picc_data);
+      printf("%02d: ", block);
+      for (uint8_t i = 0; i < 16; i++)
+      {
+        printf("%02x ", picc_data[i]);
+      }
+      printf("\n");
+
+      rc522_picc_halta(PICC_CMD_HALTA);
+      // Clear the MFCrypto1On bit.
+      rc522_clear_bitmask(RC522_REG_STATUS_2, 0x08);
+    }
+    {
+      uint8_t block = 2 + sector * 4;
+      TEST_ASSERT_EQUAL(true, rc522_picc_reqa_or_wupa(PICC_CMD_WUPA));
+      TEST_ASSERT_EQUAL(true, rc522_anti_collision(1));
+
+      rc522_authenticate(PICC_CMD_MF_AUTH_KEY_A, block, key);
+
+      rc522_read_picc_data(block, picc_data);
+      printf("%02d: ", block);
+      for (uint8_t i = 0; i < 16; i++)
+      {
+        printf("%02x ", picc_data[i]);
+      }
+      printf("\n");
+
+      rc522_picc_halta(PICC_CMD_HALTA);
+      // Clear the MFCrypto1On bit.
+      rc522_clear_bitmask(RC522_REG_STATUS_2, 0x08);
+    }
+    {
+      uint8_t block = 3 + sector * 4;
+      TEST_ASSERT_EQUAL(true, rc522_picc_reqa_or_wupa(PICC_CMD_WUPA));
+      TEST_ASSERT_EQUAL(true, rc522_anti_collision(1));
+
+      rc522_authenticate(PICC_CMD_MF_AUTH_KEY_A, block, key);
+
+      rc522_read_picc_data(block, picc_data);
+      printf("%02d: ", block);
+      for (uint8_t i = 0; i < 16; i++)
+      {
+        printf("%02x ", picc_data[i]);
+      }
+      printf("\n");
+
+      rc522_picc_halta(PICC_CMD_HALTA);
+      // Clear the MFCrypto1On bit.
+      rc522_clear_bitmask(RC522_REG_STATUS_2, 0x08);
+    }
+  }
 }
