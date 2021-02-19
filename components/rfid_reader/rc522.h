@@ -95,6 +95,14 @@ uint8_t rc522_read(uint8_t addr);
 esp_err_t rc522_clear_bitmask(uint8_t addr, uint8_t mask);
 status_e rc522_picc_halta(uint8_t halta);
 
+/*
+ * EXPOSED BECAUSE OF TESTING!!!
+ * This function is for waking up a PICC. It transmits the REQA or WUPA command.
+ * If the PICC responds then the anticollision procedure can be performed.
+ */
+status_e rc522_picc_reqa_or_wupa(uint8_t reqa_or_wupa);
+
+
 #define rc522_fw_version() rc522_read(RC522_REG_FW_VERSION)
 
 

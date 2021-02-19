@@ -25,12 +25,6 @@ static esp_timer_handle_t rc522_timer;
  */
 static void rc522_calculate_crc(uint8_t *data, uint8_t data_size, uint8_t* crc_buf);
 
-/*
- * This function is for waking up a PICC. It transmits the REQA or WUPA command.
- * If the PICC responds then the anticollision procedure can be performed.
- */
-static status_e rc522_picc_reqa_or_wupa(uint8_t reqa_or_wupa);
-
 static esp_err_t rc522_antenna_on();
 static esp_err_t rc522_set_bitmask(uint8_t addr, uint8_t mask);
 
@@ -352,7 +346,7 @@ void rc522_picc_write(rc522_commands_e cmd,
   return;
 }
 
-static status_e rc522_picc_reqa_or_wupa(uint8_t reqa_or_wupa)
+status_e rc522_picc_reqa_or_wupa(uint8_t reqa_or_wupa)
 {
   status_e status = FAILURE;
   // Set a short frame format of 7 bits. That means that only 7 bits of the last byte,

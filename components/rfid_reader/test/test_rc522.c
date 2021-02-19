@@ -32,7 +32,9 @@ TEST_CASE("rc522 picc presence", "[rc522][picc_present]")
   spi_device_handle_t spi = periph_get_spi_handle();
 
   TEST_ASSERT_EQUAL(ESP_OK, rc522_init(spi));
-  TEST_ASSERT_EQUAL(true, rc522_test_picc_presence());
+  TEST_ASSERT_EQUAL(true, rc522_picc_reqa_or_wupa(PICC_CMD_WUPA));
+
+  rc522_picc_halta(PICC_CMD_HALTA);
 }
 
 TEST_CASE("rc522 anti collision", "[rc522][picc_present]")
@@ -40,7 +42,7 @@ TEST_CASE("rc522 anti collision", "[rc522][picc_present]")
   spi_device_handle_t spi = periph_get_spi_handle();
 
   TEST_ASSERT_EQUAL(ESP_OK, rc522_init(spi));
-  TEST_ASSERT_EQUAL(true, rc522_test_picc_presence());
+  TEST_ASSERT_EQUAL(true, rc522_picc_reqa_or_wupa(PICC_CMD_WUPA));
   TEST_ASSERT_EQUAL(true, rc522_anti_collision(1));
 
   char uid[10] = {};
@@ -52,6 +54,8 @@ TEST_CASE("rc522 anti collision", "[rc522][picc_present]")
     printf("%x ", uid[i]);
   }
   printf("\n");
+
+  rc522_picc_halta(PICC_CMD_HALTA);
 }
 
 TEST_CASE("rc522 read PICC's data", "[rc522][picc_present]")
@@ -59,7 +63,7 @@ TEST_CASE("rc522 read PICC's data", "[rc522][picc_present]")
   spi_device_handle_t spi = periph_get_spi_handle();
 
   TEST_ASSERT_EQUAL(ESP_OK, rc522_init(spi));
-  TEST_ASSERT_EQUAL(true, rc522_test_picc_presence());
+  TEST_ASSERT_EQUAL(true, rc522_picc_reqa_or_wupa(PICC_CMD_WUPA));
   TEST_ASSERT_EQUAL(true, rc522_anti_collision(1));
 
   uint8_t block = 0;
