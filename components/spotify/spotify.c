@@ -18,10 +18,11 @@ spotify_playback_t spotify_playback;
  */
 static esp_err_t spotify_http_event_handler(esp_http_client_event_t *evt);
 
-// TODO(michalc): the response_buf is pretty big... it would be better to put it on the heap.
-#define RESPONSE_BUF_SIZE (1024 * 5)
-// This buffer is local to this scope but the data is persistent.
+// Memory used by this component. Trying to avoid sprinkling the code with mallocs and frees.
+#define RESPONSE_BUF_SIZE   (1024 * 5)
+#define SCRATCH_MEM_SIZE    (1024)
 static char* response_buf = NULL;
+static char* scratch_mem = NULL;
 
 
 void spotify_init()
@@ -41,6 +42,7 @@ void spotify_init()
 
   // We are assuming the init function is called only once. Otherwise we have a memory leak.
   response_buf = (char*)malloc(RESPONSE_BUF_SIZE);
+  scratch_mem = (char*)malloc(SCRATCH_MEM_SIZE);
 }
 
 uint8_t spotify_is_fresh_access_token()
@@ -50,20 +52,24 @@ uint8_t spotify_is_fresh_access_token()
 
 void spotify_refresh_access_token()
 {
-  const char* spotify_url = "https://accounts.spotify.com/api/token";
+  const char* const _url= "https://accounts.spotify.com/api/token";
+
   esp_http_client_config_t config = {
-    .url = spotify_url,
+    .url = _url,
     .transport_type = HTTP_TRANSPORT_OVER_SSL,
     .event_handler = spotify_http_event_handler,
   };
   esp_http_client_handle_t client = esp_http_client_init(&config);
   esp_http_client_set_method(client, HTTP_METHOD_POST);
-  char data[1024];
-  snprintf(data, 1024, "client_id=%s&client_secret=%s&refresh_token=%s&grant_type=refresh_token",
+  // Build a URL encoded key-value data pairs.
+  snprintf(scratch_mem, SCRATCH_MEM_SIZE, "client_id=%s"
+                                         "&client_secret=%s"
+                                         "&refresh_token=%s"
+                                         "&grant_type=refresh_token",
            spotify.client_id,
            spotify.client_secret,
            spotify.refresh_token);
-  esp_http_client_set_post_field(client, data, strlen(data));
+  esp_http_client_set_post_field(client, scratch_mem, strlen(scratch_mem));
 
   esp_err_t err = esp_http_client_perform(client);
 
@@ -73,29 +79,23 @@ void spotify_refresh_access_token()
             esp_http_client_get_content_length(client));
   }
 
-  // Closing this connection.
+  // Closing the connection.
   esp_http_client_cleanup(client);
 }
 
 void spotify_query()
 {
-  esp_http_client_handle_t client;
+  const char* const _url = "https://api.spotify.com/v1/me/player";
+  snprintf(scratch_mem, SCRATCH_MEM_SIZE, "Bearer %s", spotify.access_token);
 
-  char* access_token_header = (char*)malloc(280);
-  snprintf(access_token_header, 280, "Bearer %s", spotify.access_token);
-
-  // Modyfing the client here, which we assume is connected to the server.
-  const char* spotify_url = "https://api.spotify.com/v1/me/player";
   esp_http_client_config_t config = {
-    .url = spotify_url,
+    .url = _url,
     .transport_type = HTTP_TRANSPORT_OVER_SSL,
     .event_handler = spotify_http_event_handler,
   };
-  client = esp_http_client_init(&config);
-
-  esp_http_client_set_header(client, "Authorization", access_token_header);
+  esp_http_client_handle_t client = esp_http_client_init(&config);
   esp_http_client_set_method(client, HTTP_METHOD_GET);
-
+  esp_http_client_set_header(client, "Authorization", scratch_mem);
 
   esp_err_t err = esp_http_client_perform(client);
 
@@ -105,31 +105,32 @@ void spotify_query()
             esp_http_client_get_status_code(client),
             esp_http_client_get_content_length(client));
   }
-  free(access_token_header);
+
+  // Closing the connection.
   esp_http_client_cleanup(client);
 }
 
 void spotify_enqueue_song(const char* const song_id)
 {
-  esp_http_client_handle_t client;
-
-  char* const access_token_header = (char*)malloc(280);
-  snprintf(access_token_header, 280, "Bearer %s", spotify.access_token);
-
-  // Modyfing the client here, which we assume is connected to the server.
   const char* const _url = "https://api.spotify.com/v1/me/player/queue?uri=spotify:track:";
-  char* const spotify_url = (char*)malloc(128);
-  // Spotify's songs ID are 22 chars.
-  snprintf(spotify_url, 128, "%s%.22s", _url, song_id);
+  // The idea below is to use the scratch buffer for building the URL and the header.
+  char* const spotify_url = scratch_mem;
+  memcpy(spotify_url, _url, strlen(_url));
+  memcpy(spotify_url + strlen(_url), song_id, strlen(song_id));
+  *(spotify_url + strlen(_url) + strlen(song_id)) = 0;
+
+  char* const spotify_header = (scratch_mem + strlen(_url) + strlen(song_id) + 1);
+  memcpy(spotify_header, "Bearer ", 7);
+  memcpy(spotify_header + 7, spotify.access_token, strlen(spotify.access_token));
+  *(spotify_header + 7 + strlen(spotify.access_token)) = 0;
 
   esp_http_client_config_t config = {
     .url = spotify_url,
     .transport_type = HTTP_TRANSPORT_OVER_SSL,
     .event_handler = spotify_http_event_handler,
   };
-  client = esp_http_client_init(&config);
-
-  esp_http_client_set_header(client, "Authorization", access_token_header);
+  esp_http_client_handle_t client = esp_http_client_init(&config);
+  esp_http_client_set_header(client, "Authorization", spotify_header);
   esp_http_client_set_method(client, HTTP_METHOD_POST);
 
   esp_err_t err = esp_http_client_perform(client);
@@ -139,28 +140,24 @@ void spotify_enqueue_song(const char* const song_id)
              esp_http_client_get_status_code(client),
              esp_http_client_get_content_length(client));
   }
-  free(access_token_header);
-  free(spotify_url);
+
+  // Closing the connection.
   esp_http_client_cleanup(client);
 }
 
 void spotify_next_song()
 {
-  esp_http_client_handle_t client;
-
-  char* access_token_header = (char*)malloc(280);
-  snprintf(access_token_header, 280, "Bearer %s", spotify.access_token);
+  const char* _url = "https://api.spotify.com/v1/me/player/next";
+  snprintf(scratch_mem, SCRATCH_MEM_SIZE, "Bearer %s", spotify.access_token);
 
   // Modyfing the client here, which we assume is connected to the server.
-  const char* spotify_url = "https://api.spotify.com/v1/me/player/next";
   esp_http_client_config_t config = {
-    .url = spotify_url,
+    .url = _url,
     .transport_type = HTTP_TRANSPORT_OVER_SSL,
     .event_handler = spotify_http_event_handler,
   };
-  client = esp_http_client_init(&config);
-
-  esp_http_client_set_header(client, "Authorization", access_token_header);
+  esp_http_client_handle_t client = esp_http_client_init(&config);
+  esp_http_client_set_header(client, "Authorization", scratch_mem);
   esp_http_client_set_method(client, HTTP_METHOD_POST);
 
   esp_err_t err = esp_http_client_perform(client);
@@ -170,7 +167,8 @@ void spotify_next_song()
              esp_http_client_get_status_code(client),
              esp_http_client_get_content_length(client));
   }
-  free(access_token_header);
+
+  // Closing the connection.
   esp_http_client_cleanup(client);
 }
 
