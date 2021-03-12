@@ -109,6 +109,7 @@ esp_err_t rc522_write_n(uint8_t addr, uint8_t data_size, uint8_t *data)
 {
   // The address gets concatenated with the data here. This buffer gets freed in the same scope
   // so a little malloc won't hurt... famous last words.
+  // TODO(michalc): use a preallocated scratch buffer.
   uint8_t* buffer = (uint8_t*) malloc(data_size + 1);
   // MFRC522 documentation says that bit 0 should be 0, bits 1-6 is the address, bit 7
   // is 1 for read and 0 for write.
@@ -145,6 +146,7 @@ uint8_t* rc522_read_n(uint8_t addr, uint8_t n)
   spi_transaction_t t;
   memset(&t, 0, sizeof(t));
 
+  // TODO(michalc): use a preallocated scratch buffer.
   uint8_t* buffer = (uint8_t*) malloc(n);
   
   t.flags = SPI_TRANS_USE_TXDATA;
@@ -330,6 +332,7 @@ void rc522_picc_write(rc522_commands_e cmd,
 
         if (response->size_bytes)
         {
+          // TODO(michalc): use a preallocated scratch buffer.
           response->data = (uint8_t*)malloc(response->size_bytes);
 
           // Fetch the response.
