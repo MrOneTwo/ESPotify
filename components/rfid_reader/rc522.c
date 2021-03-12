@@ -94,6 +94,8 @@ rc522_say_hello()
   // 0x0D part is high part of the timer prescaler.
   rc522_write(RC522_REG_TIMER_MODE, 0x8D);
   // 0x3E part is the low part of the timer prescaler.
+  // Using the 0x0D3E for prescaler value gives timer frequency of ~2kHz
+  // Using 0x0D3D would give exactly 2kHz...
   rc522_write(RC522_REG_TIMER_PRESCALER, 0x3E);
   // 0x1E00 is 7680 in dec - that's the 16 bit reload value.
   rc522_write(RC522_REG_TIMER_RELOAD_2, 0x1E);
