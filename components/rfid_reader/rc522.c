@@ -110,7 +110,8 @@ esp_err_t rc522_write_n(uint8_t addr, uint8_t data_size, uint8_t *data)
   // The address gets concatenated with the data here. This buffer gets freed in the same scope
   // so a little malloc won't hurt... famous last words.
   uint8_t* buffer = (uint8_t*) malloc(data_size + 1);
-  // TODO(michalc): understand why this is needed.
+  // MFRC522 documentation says that bit 0 should be 0, bits 1-6 is the address, bit 7
+  // is 1 for read and 0 for write.
   buffer[0] = (addr << 1) & 0x7E;
 
   // Copy data from data to buffer, moved by one byte to make space for the address.
@@ -148,6 +149,8 @@ uint8_t* rc522_read_n(uint8_t addr, uint8_t n)
   
   t.flags = SPI_TRANS_USE_TXDATA;
   t.length = 8;
+  // MFRC522 documentation says that bit 0 should be 0, bits 1-6 is the address, bit 7
+  // is 1 for read and 0 for write.
   t.tx_data[0] = ((addr << 1) & 0x7E) | 0x80;
   t.rxlength = 8 * n;
   t.rx_buffer = buffer;
