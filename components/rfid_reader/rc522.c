@@ -91,10 +91,16 @@ rc522_say_hello()
   // End of RW test
 
   rc522_write(RC522_REG_COMMAND, 0x0F);
+  // 0x0D part is high part of the timer prescaler.
   rc522_write(RC522_REG_TIMER_MODE, 0x8D);
+  // 0x3E part is the low part of the timer prescaler.
   rc522_write(RC522_REG_TIMER_PRESCALER, 0x3E);
+  // 0x1E00 is 7680 in dec - that's the 16 bit reload value.
   rc522_write(RC522_REG_TIMER_RELOAD_2, 0x1E);
   rc522_write(RC522_REG_TIMER_RELOAD_1, 0x00);
+  // Transmission modulation. There is only one bit to set in this register. That's the
+  // Force100ASK bit. ASK = Amplitude Shift Keying.
+  // TODO(michalc): I don't know why we do this.
   rc522_write(RC522_REG_TX_ASK, 0x40);
   rc522_write(RC522_REG_MODE, 0x3D);
 
