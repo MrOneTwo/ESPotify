@@ -93,6 +93,7 @@ rc522_say_hello()
   rc522_write(RC522_REG_COMMAND, 0x0F);
   // 0x0D part is high part of the timer prescaler.
   rc522_write(RC522_REG_TIMER_MODE, 0x8D);
+  // Timer is used for timing out when talking to PICC.
   // 0x3E part is the low part of the timer prescaler.
   // Using the 0x0D3E for prescaler value gives timer frequency of ~2kHz
   // Using 0x0D3D would give exactly 2kHz...
@@ -104,6 +105,7 @@ rc522_say_hello()
   // Force100ASK bit. ASK = Amplitude Shift Keying.
   // TODO(michalc): I don't know why we do this.
   rc522_write(RC522_REG_TX_ASK, 0x40);
+  // Default 0x3F. Set the preset value for the CRC coprocessor for the CalcCRC command to 0x6363 (ISO 14443-3 part 6.2.4)
   rc522_write(RC522_REG_MODE, 0x3D);
 
   rc522_antenna_on();
