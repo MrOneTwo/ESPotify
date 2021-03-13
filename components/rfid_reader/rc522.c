@@ -66,7 +66,11 @@ rc522_get_last_picc_uid(char buf[10], uint8_t* size)
 esp_err_t
 rc522_init(spi_device_handle_t spi)
 {
-  scratch_mem = (uint8_t*)malloc(SCRATCH_MEM_SIZE);
+  if (scratch_mem == NULL)
+  {
+    scratch_mem = (uint8_t*)malloc(SCRATCH_MEM_SIZE);
+  }
+
   if (spi != NULL)
   {
     rc522_spi = spi;
