@@ -16,6 +16,9 @@
 static spi_device_handle_t rc522_spi;
 static esp_timer_handle_t rc522_timer;
 
+#define SCRATCH_MEM_SIZE  (128U)
+static uint8_t* scratch_mem = NULL;
+
 //
 // Functions that communicate with RC522.
 //
@@ -63,6 +66,7 @@ rc522_get_last_picc_uid(char buf[10], uint8_t* size)
 esp_err_t
 rc522_init(spi_device_handle_t spi)
 {
+  scratch_mem = (uint8_t*)malloc(SCRATCH_MEM_SIZE);
   if (spi != NULL)
   {
     rc522_spi = spi;
@@ -117,10 +121,8 @@ rc522_say_hello()
 
 esp_err_t rc522_write_n(uint8_t addr, uint8_t data_size, uint8_t *data)
 {
-  // The address gets concatenated with the data here. This buffer gets freed in the same scope
-  // so a little malloc won't hurt... famous last words.
-  // TODO(michalc): use a preallocated scratch buffer.
-  uint8_t* buffer = (uint8_t*) malloc(data_size + 1);
+  // The address gets concatenated with the data here.
+  uint8_t* buffer = scratch_mem;
   // MFRC522 documentation says that bit 0 should be 0, bits 1-6 is the address, bit 7
   // is 1 for read and 0 for write.
   buffer[0] = (addr << 1) & 0x7E;
@@ -135,8 +137,6 @@ esp_err_t rc522_write_n(uint8_t addr, uint8_t data_size, uint8_t *data)
   t.tx_buffer = buffer;
 
   esp_err_t ret = spi_device_transmit(rc522_spi, &t);
-
-  free(buffer);
 
   return ret;
 }
@@ -156,8 +156,8 @@ uint8_t* rc522_read_n(uint8_t addr, uint8_t n)
   spi_transaction_t t;
   memset(&t, 0, sizeof(t));
 
-  // TODO(michalc): use a preallocated scratch buffer.
-  uint8_t* buffer = (uint8_t*) malloc(n);
+  // Using the second half of the scratch_mem for incoming data.
+  uint8_t* buffer = (scratch_mem + SCRATCH_MEM_SIZE / 2);
   
   t.flags = SPI_TRANS_USE_TXDATA;
   t.length = 8;
@@ -176,10 +176,7 @@ uint8_t* rc522_read_n(uint8_t addr, uint8_t n)
 uint8_t rc522_read(uint8_t addr)
 {
   uint8_t* buffer = rc522_read_n(addr, 1);
-  uint8_t res = buffer[0];
-  free(buffer);
-
-  return res;
+  return buffer[0];
 }
 
 
@@ -342,10 +339,9 @@ void rc522_picc_write(rc522_commands_e cmd,
 
         if (response->size_bytes)
         {
-          // TODO(michalc): use a preallocated scratch buffer.
-          response->data = (uint8_t*)malloc(response->size_bytes);
-
-          // Fetch the response.
+          // Using the second half of the scratch_mem for incoming data.
+          response->data = (scratch_mem + SCRATCH_MEM_SIZE / 2);
+          // Read the data into scratch memory.
           for(i = 0; i < response->size_bytes; i++)
           {
             response->data[i] = rc522_read(RC522_REG_FIFO_DATA);
@@ -382,11 +378,6 @@ status_e rc522_picc_reqa_or_wupa(uint8_t reqa_or_wupa)
     status = SUCCESS;
   }
 
-  if (resp.data != NULL)
-  {
-    free(resp.data);
-  }
-
   return status;
 }
 
@@ -400,11 +391,6 @@ status_e rc522_picc_halta(uint8_t halta)
   rc522_calculate_crc(picc_cmd_buffer, 2, &picc_cmd_buffer[2]);
 
   rc522_picc_write(RC522_CMD_TRANSCEIVE, picc_cmd_buffer, 4, &resp);
-  // Check if cascade bit is set. If so then the UID isn't fully fetched yet.
-  if (resp.data != NULL)
-  {
-    free(resp.data);
-  }
 
   return SUCCESS;
 }
@@ -503,9 +489,6 @@ rc522_anti_collision(uint8_t cascade_level)
     rc522_calculate_crc(anticollision, 7, &anticollision[7]);
     anticollision_size = 9;
 
-    free(resp.data);
-
-
     // Sets StartSend bit to 0, all bits are valid.
     rc522_write(RC522_REG_BIT_FRAMING, 0x00);
 
@@ -519,8 +502,6 @@ rc522_anti_collision(uint8_t cascade_level)
         picc.uid_full = true;
         picc.type = resp.data[0] & 0x7F;
       }
-
-      free(resp.data);
     }
   }
   else
@@ -604,7 +585,6 @@ void rc522_read_picc_data(uint8_t block_address, uint8_t buffer[16])
       // Copy the actual data bytes but not the CRC bytes.
       memcpy(buffer, resp.data, resp.size_bytes - 2);
     }
-    free(resp.data);
   }
   else
   {
@@ -641,8 +621,6 @@ void rc522_write_picc_data(uint8_t block_address, uint8_t buffer[18])
         printf("PICC responded with ACK (%x) when trying to write data!\n", resp.data[0]);
       }
     }
-
-    free(resp.data);
   }
 
   // We always write 16 data + 2 CRC bytes. No other way to do a write.
@@ -663,8 +641,6 @@ void rc522_write_picc_data(uint8_t block_address, uint8_t buffer[18])
         printf("PICC responded with ACK (%x) when trying to write data!\n", resp.data[0]);
       }
     }
-
-    free(resp.data);
   }
 
   return;
