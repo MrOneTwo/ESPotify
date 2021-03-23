@@ -421,16 +421,16 @@ rc522_anti_collision(uint8_t cascade_level)
 
   if (cascade_level == 1)
   {
-    anticollision[0] = PICC_CMD_SELECT_CL_1;
+    anticollision[0] = PICC_CMD_MIFARE_SELECT_CL_1;
   }
   else if (cascade_level == 2)
   {
     // TODO(michalc): for now I just assume that we've received full bytes of UID. No trailing bits.
-    anticollision[0] = PICC_CMD_SELECT_CL_2;
+    anticollision[0] = PICC_CMD_MIFARE_SELECT_CL_2;
   }
   else if (cascade_level == 3)
   {
-    anticollision[0] = PICC_CMD_SELECT_CL_3;
+    anticollision[0] = PICC_CMD_MIFARE_SELECT_CL_3;
   }
   else
   {
@@ -553,7 +553,7 @@ bool rc522_test_picc_presence()
   // move it close to reader again.
   // If you use WUPA you'll be able to wake up the PICC every time. That means the entire process
   // below will succeed every time.
-  status_e picc_present = rc522_picc_reqa_or_wupa(PICC_CMD_REQA);
+  status_e picc_present = rc522_picc_reqa_or_wupa(PICC_CMD_MIFARE_REQA);
 
   return picc_present == SUCCESS ? true : false;
 }
@@ -564,7 +564,7 @@ void rc522_read_picc_data(uint8_t block_address, uint8_t buffer[16])
 
   // At least 18 bytes because it's data + CRC_A.
   uint8_t picc_cmd_buffer[18];
-  picc_cmd_buffer[0] = PICC_CMD_MF_READ;
+  picc_cmd_buffer[0] = PICC_CMD_MIFARE_MF_READ;
   picc_cmd_buffer[1] = block_address;
   // Calculate the CRC on the RC522 side.
   rc522_calculate_crc(picc_cmd_buffer, 2, &picc_cmd_buffer[2]);
@@ -603,7 +603,7 @@ void rc522_write_picc_data(uint8_t block_address, uint8_t buffer[18])
   response_t resp = {};
 
   uint8_t picc_cmd_buffer[4];
-  picc_cmd_buffer[0] = PICC_CMD_MF_WRITE;
+  picc_cmd_buffer[0] = PICC_CMD_MIFARE_MF_WRITE;
   picc_cmd_buffer[1] = block_address;  // block address.
   // Calculate the CRC on the RC522 side.
   rc522_calculate_crc(picc_cmd_buffer, 2, &picc_cmd_buffer[2]);
@@ -709,7 +709,7 @@ static void rc522_timer_callback(void* arg)
     {
       uint8_t key[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
       // Authenticate sector access.
-      rc522_authenticate(PICC_CMD_MF_AUTH_KEY_A, block, key);
+      rc522_authenticate(PICC_CMD_MIFARE_MF_AUTH_KEY_A, block, key);
 
       uint8_t data[18] = {
         0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7,
@@ -733,7 +733,7 @@ static void rc522_timer_callback(void* arg)
       printf("FAILED TO GET A FULL UID...\n");
     }
 
-    rc522_picc_halta(PICC_CMD_HALTA);
+    rc522_picc_halta(PICC_CMD_MIFARE_HALTA);
     // Clear the MFCrypto1On bit.
     rc522_clear_bitmask(RC522_REG_STATUS_2, 0x08);
   }

@@ -10,3 +10,9 @@ When in this directory:
 idf.py flash
 idf.py monitor
 ```
+
+Change the RFID reader in the *main/CMakeLists.txt*:
+
+```
+idf_build_set_property(COMPILE_DEFINITIONS -DCONFIG_RC522 APPEND)
+```
