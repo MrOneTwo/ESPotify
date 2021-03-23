@@ -16,7 +16,8 @@
 static spi_device_handle_t rc522_spi;
 static esp_timer_handle_t rc522_timer;
 
-#define SCRATCH_MEM_SIZE  (128U)
+// Creating 3 slots.
+#define SCRATCH_MEM_SIZE  (48 * 3)
 static uint8_t* scratch_mem = NULL;
 
 //
@@ -161,7 +162,7 @@ uint8_t* rc522_read_n(uint8_t addr, uint8_t n)
   memset(&t, 0, sizeof(t));
 
   // Using the second half of the scratch_mem for incoming data.
-  uint8_t* buffer = (scratch_mem + SCRATCH_MEM_SIZE / 2);
+  uint8_t* buffer = (scratch_mem + SCRATCH_MEM_SIZE / 3);
   
   t.flags = SPI_TRANS_USE_TXDATA;
   t.length = 8;
@@ -343,7 +344,7 @@ void rc522_picc_write(rc522_commands_e cmd,
         if (response->size_bytes)
         {
           // Using the second half of the scratch_mem for incoming data.
-          response->data = (scratch_mem + SCRATCH_MEM_SIZE / 2);
+          response->data = (scratch_mem + 2 * (SCRATCH_MEM_SIZE / 3));
           // Read the data into scratch memory.
           for(i = 0; i < response->size_bytes; i++)
           {
