@@ -74,7 +74,7 @@ void task_rfid_read_or_write(void* pvParameters)
       const uint8_t key[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 
       // Authenticate sector access.
-      rc522_authenticate(PICC_CMD_MIFARE_MF_AUTH_KEY_A, block, key);
+      rc522_authenticate(PICC_CMD_MIFARE_AUTH_KEY_A, block, key);
     }
 
     // 16 bytes and 2 bytes for CRC.
@@ -119,7 +119,7 @@ void task_rfid_read_or_write(void* pvParameters)
       memcpy(msg, read_buffer, 32);
     }
 
-    rc522_picc_halta(PICC_CMD_MIFARE_HALTA);
+    rc522_picc_halta(PICC_CMD_HALTA);
     // Clear the MFCrypto1On bit.
     rc522_clear_bitmask(RC522_REG_STATUS_2, 0x08);
 
