@@ -23,10 +23,11 @@
 #define PICC_CMD_MIFARE_RATS           0xE0
 
 // NTAG set of commands.
+#define PICC_CMD_NTAG_GET_VERSION      0x60
 #define PICC_CMD_NTAG_READ             0x30
 #define PICC_CMD_NTAG_FAST_READ        0x3A
-#define PICC_CMD_NTAG_WRITE            0xA0
-#define PICC_CMD_NTAG_UL_WRITE         0xA2
+#define PICC_CMD_NTAG_WRITE            0xA2
+#define PICC_CMD_NTAG_COMP_WRITE       0xA0
 #define PICC_CMD_NTAG_READ_CNT         0x39
 #define PICC_CMD_NTAG_PWD_AUTH         0x1B
 #define PICC_CMD_NTAG_READ_SIG         0x3C
