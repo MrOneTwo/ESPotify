@@ -57,4 +57,12 @@ typedef struct picc_version_t {
   uint8_t protocol_type;
 } picc_version_t;
 
+// The PICC types this library supports.
+typedef enum {
+  PICC_NOT_SUPPORTED,
+  PICC_SUPPORTED_MIFARE_1K,
+  PICC_SUPPORTED_NTAG213,
+  PICC_SUPPORTED_COUNT
+} picc_supported_e;
+
 #endif // PICC_H
