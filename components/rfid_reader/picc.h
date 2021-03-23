@@ -45,6 +45,7 @@
 #define PICC_RESPONSE_NAK_WRITE_ERR    0x05
 
 // Response to GET VERSION command.
+// https://www.nxp.com/docs/en/data-sheet/NTAG213_215_216.pdf page 36.
 typedef struct picc_version_t {
   uint8_t fixed_header;
   uint8_t vendor_id;
