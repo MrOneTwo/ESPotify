@@ -53,6 +53,7 @@ typedef struct picc_t {
 // case 0x40:	return PICC_TYPE_ISO_18092;
 // default:	return PICC_TYPE_UNKNOWN;
   uint8_t type;
+  picc_version_t ver;
 } picc_t;
 
 picc_t picc;
@@ -414,12 +415,17 @@ status_e rc522_picc_get_version(void)
   {
     return FAILURE;
   }
-  else
+
+  if (resp.size_bytes == 10)
   {
-    if (resp.size_bits == 4)
-    {
-    }
-    printf("PICC responded with data of %d bytes!\n", resp.size_bytes);
+    picc.ver.fixed_header = resp.data[0];
+    picc.ver.vendor_id = resp.data[1];
+    picc.ver.product_type = resp.data[2];
+    picc.ver.product_subtype = resp.data[3];
+    picc.ver.maj_product_ver = resp.data[4];
+    picc.ver.min_product_ver = resp.data[5];
+    picc.ver.storage_size = resp.data[6];
+    picc.ver.protocol_type = resp.data[7];
   }
 
   return SUCCESS;

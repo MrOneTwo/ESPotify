@@ -67,6 +67,8 @@ TEST_CASE("rc522 try GET VERSION command", "[rc522][picc_present]")
   TEST_ASSERT_EQUAL(true, rc522_anti_collision(1));
 
   TEST_ASSERT_EQUAL(SUCCESS, rc522_picc_get_version());
+
+  rc522_picc_halta(PICC_CMD_HALTA);
 }
 
 TEST_CASE("rc522 read PICC's data", "[rc522][picc_present]")

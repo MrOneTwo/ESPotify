@@ -44,4 +44,16 @@
 #define PICC_RESPONSE_NAK_INV_AUTH     0x04
 #define PICC_RESPONSE_NAK_WRITE_ERR    0x05
 
+// Response to GET VERSION command.
+typedef struct picc_version_t {
+  uint8_t fixed_header;
+  uint8_t vendor_id;
+  uint8_t product_type;
+  uint8_t product_subtype;
+  uint8_t maj_product_ver;
+  uint8_t min_product_ver;
+  uint8_t storage_size;
+  uint8_t protocol_type;
+} picc_version_t;
+
 #endif // PICC_H
