@@ -66,6 +66,27 @@ typedef enum {
   RC522_CMD_SOFT_RESET    = (0b1111),
 } rc522_commands_e;
 
+typedef struct picc_t {
+  uint8_t uid_hot;
+  uint8_t uid_full;
+  uint8_t uid[10];
+  uint8_t uid_bits;
+// Types:
+// case 0x04:	return PICC_TYPE_NOT_COMPLETE;
+// case 0x09:	return PICC_TYPE_MIFARE_MINI;
+// case 0x08:	return PICC_TYPE_MIFARE_1K;
+// case 0x18:	return PICC_TYPE_MIFARE_4K;
+// case 0x00:	return PICC_TYPE_MIFARE_UL;
+// case 0x10:
+// case 0x11:	return PICC_TYPE_MIFARE_PLUS;
+// case 0x01:	return PICC_TYPE_TNP3XXX;
+// case 0x20:	return PICC_TYPE_ISO_14443_4;
+// case 0x40:	return PICC_TYPE_ISO_18092;
+// default:	return PICC_TYPE_UNKNOWN;
+  uint8_t type;
+  picc_version_t ver;
+} picc_t;
+
 /*
  * The response from the RC522 + PICC is a repeating concept. It doesn't differ that much from
  * a normal uint8_t buffer. It just carries its size information in bits and bytes with it. That's
@@ -133,7 +154,7 @@ bool rc522_test_picc_presence(void);
  * Copy the last detected PICC's UID into buf. The UID's size in bytes gets saved
  * in the size argument.
  */
-void rc522_get_last_picc_uid(char buf[10], uint8_t* size);
+picc_t rc522_get_last_picc(void);
 
 /*
  * This function tries to read the entire UID from the PICC. This is way more complicated than

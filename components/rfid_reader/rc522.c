@@ -20,6 +20,8 @@ static esp_timer_handle_t rc522_timer;
 #define SCRATCH_MEM_SIZE  (48 * 3)
 static uint8_t* scratch_mem = NULL;
 
+static picc_t picc;
+
 //
 // Functions that communicate with RC522.
 //
@@ -32,37 +34,16 @@ static void rc522_calculate_crc(uint8_t *data, uint8_t data_size, uint8_t* crc_b
 static esp_err_t rc522_antenna_on();
 static esp_err_t rc522_set_bitmask(uint8_t addr, uint8_t mask);
 
-
 typedef void(*rc522_tag_callback_t)(uint8_t*);
 
-typedef struct picc_t {
-  uint8_t uid_hot;
-  uint8_t uid_full;
-  uint8_t uid[10];
-  uint8_t uid_bits;
-// Types:
-// case 0x04:	return PICC_TYPE_NOT_COMPLETE;
-// case 0x09:	return PICC_TYPE_MIFARE_MINI;
-// case 0x08:	return PICC_TYPE_MIFARE_1K;
-// case 0x18:	return PICC_TYPE_MIFARE_4K;
-// case 0x00:	return PICC_TYPE_MIFARE_UL;
-// case 0x10:
-// case 0x11:	return PICC_TYPE_MIFARE_PLUS;
-// case 0x01:	return PICC_TYPE_TNP3XXX;
-// case 0x20:	return PICC_TYPE_ISO_14443_4;
-// case 0x40:	return PICC_TYPE_ISO_18092;
-// default:	return PICC_TYPE_UNKNOWN;
-  uint8_t type;
-  picc_version_t ver;
-} picc_t;
 
-picc_t picc;
-
-void
-rc522_get_last_picc_uid(char buf[10], uint8_t* size)
+/*
+ * Return picc by copy since the caller shouldn't be able to modify the internal structure.
+ */
+picc_t
+rc522_get_last_picc(void)
 {
-  *size = picc.uid_bits / 8;
-  memcpy(buf, picc.uid, picc.uid_bits / 8);
+  return picc;
 }
 
 esp_err_t

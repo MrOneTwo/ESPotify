@@ -45,13 +45,11 @@ TEST_CASE("rc522 anti collision", "[rc522][picc_present]")
   TEST_ASSERT_EQUAL(true, rc522_picc_reqa_or_wupa(PICC_CMD_WUPA));
   TEST_ASSERT_EQUAL(true, rc522_anti_collision(1));
 
-  char uid[10] = {};
-  uint8_t uid_size = 0;
-  rc522_get_last_picc_uid(uid, &uid_size);
+  picc_t picc = rc522_get_last_picc();
   printf("Detected PICC with UID: ");
-  for (int i = 0; i < uid_size; i++)
+  for (int i = 0; i < (picc.uid_bits / 8); i++)
   {
-    printf("%x ", uid[i]);
+    printf("%02x ", picc.uid[i]);
   }
   printf("\n");
 
@@ -67,6 +65,24 @@ TEST_CASE("rc522 try GET VERSION command", "[rc522][picc_present]")
   TEST_ASSERT_EQUAL(true, rc522_anti_collision(1));
 
   TEST_ASSERT_EQUAL(SUCCESS, rc522_picc_get_version());
+
+  picc_t picc = rc522_get_last_picc();
+
+  printf("Detected PICC with UID: ");
+  for (int i = 0; i < (picc.uid_bits / 8); i++)
+  {
+    printf("%02x ", picc.uid[i]);
+  }
+  printf("\n");
+
+  printf("  %-24s : 0x%02x\n", "fixed_header", picc.ver.fixed_header);
+  printf("  %-24s : 0x%02x\n", "vendor_id", picc.ver.vendor_id);
+  printf("  %-24s : 0x%02x\n", "product_type", picc.ver.product_type);
+  printf("  %-24s : 0x%02x\n", "product_subtype", picc.ver.product_subtype);
+  printf("  %-24s : 0x%02x\n", "maj_product_ver", picc.ver.maj_product_ver);
+  printf("  %-24s : 0x%02x\n", "min_product_ver", picc.ver.min_product_ver);
+  printf("  %-24s : 0x%02x\n", "storage_size", picc.ver.storage_size);
+  printf("  %-24s : 0x%02x\n", "protocol_type", picc.ver.protocol_type);
 
   rc522_picc_halta(PICC_CMD_HALTA);
 }
