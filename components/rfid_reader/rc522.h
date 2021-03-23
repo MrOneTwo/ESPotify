@@ -83,7 +83,7 @@ typedef struct picc_t {
 // case 0x20:	return PICC_TYPE_ISO_14443_4;
 // case 0x40:	return PICC_TYPE_ISO_18092;
 // default:	return PICC_TYPE_UNKNOWN;
-  uint8_t type;
+  picc_supported_e type;
   picc_version_t ver;
 } picc_t;
 
@@ -172,7 +172,7 @@ picc_t rc522_get_last_picc(void);
 bool rc522_anti_collision(uint8_t cascade_level);
 
 void rc522_read_picc_data(uint8_t block_adress, uint8_t buffer[16]);
-void rc522_write_picc_data(uint8_t block_address, uint8_t buffer[18]);
+void rc522_write_picc_data(const uint8_t block_address, uint8_t buffer[18]);
 
 
 /*

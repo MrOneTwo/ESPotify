@@ -97,13 +97,51 @@ TEST_CASE("rc522 read NTAG213 data", "[rc522][picc_present]")
 
   TEST_ASSERT_EQUAL(SUCCESS, rc522_picc_get_version());
 
-  uint8_t picc_data[16] = {};
+  for (uint8_t i = 0; i < 8; i++)
+  {
+    uint8_t picc_data[16] = {};
+    const uint8_t page = i * 4;
 
-  rc522_read_picc_data(3, picc_data);
+    rc522_read_picc_data(page, picc_data);
+
+    for (uint8_t i = 0; i < 16; i++)
+    {
+      printf("%02x ", picc_data[i]);
+    }
+    printf("\n");
+  }
+
+  rc522_picc_halta(PICC_CMD_HALTA);
+}
+
+TEST_CASE("rc522 write NTAG213 data", "[rc522][picc_present]")
+{
+  spi_device_handle_t spi = periph_get_spi_handle();
+
+  TEST_ASSERT_EQUAL(ESP_OK, rc522_init(spi));
+  TEST_ASSERT_EQUAL(true, rc522_picc_reqa_or_wupa(PICC_CMD_WUPA));
+  TEST_ASSERT_EQUAL(true, rc522_anti_collision(1));
+
+  TEST_ASSERT_EQUAL(SUCCESS, rc522_picc_get_version());
+
+  const uint8_t page = 10;
+
+  // Write data. Writing to NTAG213 in compatibility mode writes only 4 bytes.
+  uint8_t write_picc_data[18] = {0x0, 0x1, 0x2, 0x3, 0x0, 0x0, 0x0, 0x0,
+                                 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0};
+
+  rc522_write_picc_data(page, write_picc_data);
+
+  rc522_picc_halta(PICC_CMD_HALTA);
+
+  // Read data back.
+  uint8_t read_picc_data[16] = {};
+
+  rc522_read_picc_data(page, read_picc_data);
 
   for (uint8_t i = 0; i < 16; i++)
   {
-    printf("%02x ", picc_data[i]);
+    printf("%02x ", read_picc_data[i]);
   }
   printf("\n");
 

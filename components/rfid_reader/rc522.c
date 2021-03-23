@@ -628,11 +628,12 @@ void rc522_read_picc_data(uint8_t block_address, uint8_t buffer[16])
   return;
 }
 
-void rc522_write_picc_data(uint8_t block_address, uint8_t buffer[18])
+void rc522_write_picc_data(const uint8_t block_address, uint8_t buffer[18])
 {
   response_t resp = {};
 
   uint8_t picc_cmd_buffer[4];
+  // This works for both MIFARE and NTAG since NTAG has the PICC_CMD_NTAG_COMP_WRITE.
   picc_cmd_buffer[0] = PICC_CMD_MIFARE_WRITE;
   picc_cmd_buffer[1] = block_address;  // block address.
   // Calculate the CRC on the RC522 side.
