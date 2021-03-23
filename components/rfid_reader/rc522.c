@@ -253,8 +253,8 @@ static void rc522_calculate_crc(uint8_t *data, uint8_t data_size, uint8_t* crc_b
 }
 
 void rc522_picc_write(rc522_commands_e cmd,
-                          uint8_t* data, uint8_t data_size,
-                          response_t* response)
+                      uint8_t* data, uint8_t data_size,
+                      response_t* response)
 {
   uint8_t irq = 0x00;
   uint8_t irq_wait = 0x00;
@@ -327,18 +327,17 @@ void rc522_picc_write(rc522_commands_e cmd,
       if(cmd == RC522_CMD_TRANSCEIVE)
       {
         // Check how many bytes are in the FIFO buffer. The last one might be an incomplete byte.
-        nn = rc522_read(RC522_REG_FIFO_LEVEL);
+        response->size_bytes = rc522_read(RC522_REG_FIFO_LEVEL);
         // Returns the number of valid bits in the last received byte. The response might have been
         // smaller than 1 byte.
         last_bits = rc522_read(RC522_REG_CONTROL) & 0x07;
-        response->size_bytes = nn;
         if (last_bits == 0)
         {
           response->size_bits = response->size_bytes * 8U;
         }
         else
         {
-          response->size_bits = (nn * 8U) - (8 - last_bits);
+          response->size_bits = (response->size_bytes * 8U) - (8 - last_bits);
         }
 
         if (response->size_bytes)
