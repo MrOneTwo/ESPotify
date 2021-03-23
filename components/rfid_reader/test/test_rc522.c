@@ -97,16 +97,17 @@ TEST_CASE("rc522 read NTAG213 data", "[rc522][picc_present]")
 
   TEST_ASSERT_EQUAL(SUCCESS, rc522_picc_get_version());
 
-  for (uint8_t i = 0; i < 8; i++)
+  // 0x2C + 4 is the entire space of the NTAG213.
+  for (uint32_t i = 0; i < 0x2C; i += 4)
   {
     uint8_t picc_data[16] = {};
-    const uint8_t page = i * 4;
+    const uint8_t page = i;
 
     rc522_read_picc_data(page, picc_data);
 
-    for (uint8_t i = 0; i < 16; i++)
+    for (uint8_t j = 0; j < 16; j++)
     {
-      printf("%02x ", picc_data[i]);
+      printf("%02x ", picc_data[j]);
     }
     printf("\n");
   }
