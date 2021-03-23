@@ -22,6 +22,9 @@
 #define PICC_CMD_MIFARE_UL_WRITE       0xA2  // Ultralight
 #define PICC_CMD_MIFARE_RATS           0xE0
 
+// The MIFARE Ultralight EV1, MIFARE Plus EV1 and MIFARE DESFire EV2 support
+// the GET VERSION command.
+
 // NTAG set of commands.
 #define PICC_CMD_NTAG_GET_VERSION      0x60
 #define PICC_CMD_NTAG_READ             0x30
@@ -34,5 +37,11 @@
 
 #define PICC_CASCADE_TAG               0x88
 #define MIFARE_KEY_SIZE                   6
+
+#define PICC_RESPONSE_ACK              0x0A
+#define PICC_RESPONSE_NAK_INV_ARG      0x00
+#define PICC_RESPONSE_NAK_CRC_ERR      0x01
+#define PICC_RESPONSE_NAK_INV_AUTH     0x04
+#define PICC_RESPONSE_NAK_WRITE_ERR    0x05
 
 #endif // PICC_H

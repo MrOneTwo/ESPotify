@@ -52,14 +52,6 @@
 #define RC522_RF_GAIN_43dB       (110)
 #define RC522_RF_GAIN_48dB       (111)
 
-// Code Transfer buffer validity  Description
-// Ah   -                         Acknowledge (ACK)
-// 0h   valid                     invalid operation
-// 1h   valid                     parity or CRC error
-// 4h   invalid                   invalid operation
-// 5h   invalid                   parity or CRC error
-#define MF_ACK  0xA
-
 
 typedef enum {
   RC522_CMD_IDLE          = (0b0000),
@@ -94,6 +86,7 @@ uint8_t* rc522_read_n(uint8_t addr, uint8_t n) ;
 uint8_t rc522_read(uint8_t addr);
 esp_err_t rc522_clear_bitmask(uint8_t addr, uint8_t mask);
 status_e rc522_picc_halta(uint8_t halta);
+status_e rc522_picc_get_version(void);
 
 /*
  * EXPOSED BECAUSE OF TESTING!!!

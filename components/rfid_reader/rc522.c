@@ -385,6 +385,7 @@ status_e rc522_picc_reqa_or_wupa(uint8_t reqa_or_wupa)
   return status;
 }
 
+// TODO(michalc): this doesn't need an argument. It's always the same halta.
 status_e rc522_picc_halta(uint8_t halta)
 {
   response_t resp = {};
@@ -395,6 +396,31 @@ status_e rc522_picc_halta(uint8_t halta)
   rc522_calculate_crc(picc_cmd_buffer, 2, &picc_cmd_buffer[2]);
 
   rc522_picc_write(RC522_CMD_TRANSCEIVE, picc_cmd_buffer, 4, &resp);
+
+  return SUCCESS;
+}
+
+status_e rc522_picc_get_version(void)
+{
+  response_t resp = {};
+
+  uint8_t picc_cmd_buffer[] = {PICC_CMD_NTAG_GET_VERSION, 0x00, 0x00};
+  rc522_calculate_crc(picc_cmd_buffer, 1, &picc_cmd_buffer[1]);
+
+  rc522_picc_write(RC522_CMD_TRANSCEIVE, picc_cmd_buffer, 3, &resp);
+
+  // Check for NAK.
+  if (resp.data == NULL)
+  {
+    return FAILURE;
+  }
+  else
+  {
+    if (resp.size_bits == 4)
+    {
+    }
+    printf("PICC responded with data of %d bytes!\n", resp.size_bytes);
+  }
 
   return SUCCESS;
 }
@@ -576,7 +602,7 @@ void rc522_read_picc_data(uint8_t block_address, uint8_t buffer[16])
   {
     if (resp.size_bits == 4)
     {
-      if (resp.data[0] != MF_ACK)
+      if (resp.data[0] != PICC_RESPONSE_ACK)
       {
         printf("PICC responded with NAK (%x) when trying to read data!\n", resp.data[0]);
         return;
@@ -615,7 +641,7 @@ void rc522_write_picc_data(uint8_t block_address, uint8_t buffer[18])
   {
     if (resp.size_bits == 4)
     {
-      if (resp.data[0] != MF_ACK)
+      if (resp.data[0] != PICC_RESPONSE_ACK)
       {
         printf("PICC responded with NAK (%x) when trying to write data!\n", resp.data[0]);
         return;
@@ -635,7 +661,7 @@ void rc522_write_picc_data(uint8_t block_address, uint8_t buffer[18])
   {
     if (resp.size_bits == 4)
     {
-      if (resp.data[0] != MF_ACK)
+      if (resp.data[0] != PICC_RESPONSE_ACK)
       {
         printf("PICC responded with NAK (%x) when trying to write data!\n", resp.data[0]);
         return;
