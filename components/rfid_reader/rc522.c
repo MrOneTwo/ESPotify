@@ -588,7 +588,7 @@ bool rc522_test_picc_presence()
   return picc_present == SUCCESS ? true : false;
 }
 
-void rc522_read_picc_data(uint8_t block_address, uint8_t buffer[16])
+status_e rc522_read_picc_data(uint8_t block_address, uint8_t buffer[16])
 {
   response_t resp = {};
 
@@ -609,7 +609,7 @@ void rc522_read_picc_data(uint8_t block_address, uint8_t buffer[16])
       if (resp.data[0] != PICC_RESPONSE_ACK)
       {
         printf("PICC responded with NAK (%x) when trying to read data!\n", resp.data[0]);
-        return;
+        return FAILURE;
       }
     }
 
@@ -623,9 +623,10 @@ void rc522_read_picc_data(uint8_t block_address, uint8_t buffer[16])
   else
   {
     printf("No data returned when reading PICC.\n");
+    return FAILURE;
   }
 
-  return;
+  return SUCCESS;
 }
 
 void rc522_write_picc_data(const uint8_t block_address, uint8_t buffer[18])

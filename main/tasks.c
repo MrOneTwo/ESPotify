@@ -105,18 +105,29 @@ void task_rfid_read_or_write(void* pvParameters)
     else if (reading_or_writing == RFID_OP_READ)
     {
       uint8_t read_buffer[32] = {};
-
-      rc522_read_picc_data(block, transfer_buffer);
-      memcpy(read_buffer, transfer_buffer, 16);
-
-      rc522_read_picc_data(block + 1, transfer_buffer);
-      memcpy(read_buffer + 16, transfer_buffer, 16);
-
       // We want to send a message to the Spotify task.
       spotify_should_act = 1;
-      // NOTE(michalc): what's saved in the PICC is the message we send. Might change in the
-      // future.
-      memcpy(msg, read_buffer, 32);
+
+      if (rc522_read_picc_data(block, transfer_buffer) != SUCCESS)
+      {
+        spotify_should_act = 0;
+      }
+      else
+      {
+        memcpy(read_buffer, transfer_buffer, 16);
+      }
+
+      if (rc522_read_picc_data(block + 1, transfer_buffer) != SUCCESS)
+      {
+        spotify_should_act = 0;
+      }
+      else
+      {
+        memcpy(read_buffer + 16, transfer_buffer, 16);
+        // NOTE(michalc): what's saved in the PICC is the message we send. Might change in the
+        // future.
+        memcpy(msg, read_buffer, 32);
+      }
     }
 
     rc522_picc_halta(PICC_CMD_HALTA);

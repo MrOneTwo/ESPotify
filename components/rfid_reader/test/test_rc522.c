@@ -105,6 +105,7 @@ TEST_CASE("rc522 read NTAG213 data", "[rc522][picc_present]")
 
     rc522_read_picc_data(page, picc_data);
 
+    printf("%02d: ", i);
     for (uint8_t j = 0; j < 16; j++)
     {
       printf("%02x ", picc_data[j]);
