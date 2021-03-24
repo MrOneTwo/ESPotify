@@ -73,7 +73,7 @@ void task_rfid_read_or_write(void* pvParameters)
     ESP_LOGI("tasks", "Reading or writing to PICC");
 
     const uint8_t sector = 2;
-    static uint8_t block = 4 * sector - 4;
+    const uint8_t block = 4 * sector - 4;
 
     // If we call the authentication on a PICC that doesn't conform to this type of authentication
     // we risk sending the PICC back into the original state. That might be an IDLE state.
