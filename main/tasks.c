@@ -24,6 +24,9 @@ QueueHandle_t q_rfid_to_spotify = NULL;
 bool scanning_timer_running = false;
 uint8_t reading_or_writing = RFID_OP_READ;
 
+esp_err_t scanning_timer_resume();
+esp_err_t scanning_timer_pause();
+
 
 static void task_rfid_scanning(void* arg)
 {
@@ -151,6 +154,17 @@ void task_spotify(void* pvParameters)
     status = xQueueReceive(q_rfid_to_spotify, msg, portMAX_DELAY);
     ESP_LOGI("tasks", "task_spotify got msg %.32s", msg);
 
+    scanning_timer_pause();
+
+    // TODO(michalc): This can lock
+    // TODO(michalc): what if the token expires between here and enqueue song.
+    while (!spotify_is_fresh_access_token())
+    {
+      ESP_LOGW("tasks", "Refreshing the access token");
+      spotify_refresh_access_token();
+      vTaskDelay(200);
+    }
+
     if(status == pdPASS)
     {
       // spotify_query(&spotify);
@@ -170,6 +184,8 @@ void task_spotify(void* pvParameters)
     {
       // TODO(michalc): I don't expect we'll get here...
     }
+
+    scanning_timer_resume();
   }
 }
 
@@ -210,12 +226,22 @@ void tasks_init(void)
 esp_err_t scanning_timer_resume()
 {
   // 125000 microseconds means 8Hz.
-  return scanning_timer_running ? ESP_OK : esp_timer_start_periodic(s_rfid_reader_timer, 125000);
+  if (!scanning_timer_running)
+  {
+    esp_timer_start_periodic(s_rfid_reader_timer, 125000);
+    scanning_timer_running = true;
+  }
+  return ESP_OK;
 }
 
 esp_err_t scanning_timer_pause()
 {
-  return ! scanning_timer_running ? ESP_OK : esp_timer_stop(s_rfid_reader_timer);
+  if (scanning_timer_running)
+  {
+    esp_timer_stop(s_rfid_reader_timer);
+    scanning_timer_running = false;
+  }
+  return ESP_OK;
 }
 
 void tasks_start(void)
