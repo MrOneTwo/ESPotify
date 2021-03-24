@@ -63,11 +63,13 @@ void task_rfid_read_or_write(void* pvParameters)
   {
     spotify_should_act = 0;
 
-    // Wait indefinitely for a notification from the scanning task.
+    // Wait indefinitely for a notification from the scanning task. When notified
+    // to act, pause the scanning task.
     (void)xTaskNotifyWait(0x0,
                           ULONG_MAX,
                           &reading_or_writing,
                           portMAX_DELAY);
+    scanning_timer_pause();
     ESP_LOGI("tasks", "Reading or writing to PICC");
 
     const uint8_t sector = 2;
@@ -136,6 +138,10 @@ void task_rfid_read_or_write(void* pvParameters)
     rc522_picc_halta(PICC_CMD_HALTA);
     // Clear the MFCrypto1On bit.
     rc522_clear_bitmask(RC522_REG_STATUS_2, 0x08);
+
+    // Resume before unblocking the actual tasks that communicates with Spotify.
+    // If that tasks wants to it can pause the timer itself.
+    scanning_timer_resume();
 
     if (spotify_should_act)
     {

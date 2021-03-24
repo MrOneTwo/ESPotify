@@ -361,6 +361,9 @@ status_e rc522_picc_reqa_or_wupa(uint8_t reqa_or_wupa)
   {
     // A PICC has responded to REQA with ATQA.
     // printf("ATQA: %02x %02x\n", resp.data[0], resp.data[1]);
+
+    // TODO(michalc): According to this document https://www.nxp.com/docs/en/application-note/AN10833.pdf
+    // page 10, ATQA should never be used to identify the PICC. SAK should be used for that.
     uint8_t atqa_1 = resp.data[0];
     if (atqa_1 == 0x44)
     {
@@ -532,8 +535,7 @@ rc522_anti_collision(uint8_t cascade_level)
       if (!(resp.data[0] & 0x04))
       {
         picc.uid_full = true;
-        // Deriving the type from the SAK reponse is far from optimal. Use ATQA contents or
-        // GET VERSION response.
+        // TODO(michalc): here we should establish the type of PICC based on the contents of SAK.
         // picc.type = resp.data[0] & 0x7F;
       }
     }
