@@ -75,6 +75,11 @@ void task_rfid_read_or_write(void* pvParameters)
     const uint8_t sector = 2;
     static uint8_t block = 4 * sector - 4;
 
+    // If we call the authentication on a PICC that doesn't conform to this type of authentication
+    // we risk sending the PICC back into the original state. That might be an IDLE state.
+    // This is dangerous because we might constantly wake the PICC up. It would behave as if we
+    // used the WUPA command.
+    if (rc522_get_last_picc().type == PICC_SUPPORTED_MIFARE_1K)
     {
       const uint8_t key[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 
