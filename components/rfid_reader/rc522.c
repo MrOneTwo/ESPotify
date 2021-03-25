@@ -636,18 +636,17 @@ void rc522_write_picc_data(const uint8_t block_address, uint8_t buffer[18])
   response_t resp = {};
 
   // The compatibility WRITE is supported by NTAG but we're using the native version here.
-  // if (picc.type == PICC_SUPPORTED_NTAG213)
-  // {
-  //   uint8_t picc_write_buffer[8];
-  //   picc_write_buffer[0] = PICC_CMD_NTAG_WRITE;
-  //   picc_write_buffer[1] = block_address;
-  //   memcpy(picc_write_buffer, buffer, 4);
-  //   rc522_calculate_crc(picc_write_buffer, 6, &picc_write_buffer[6]);
+  if (picc.type == PICC_SUPPORTED_NTAG213)
+  {
+    uint8_t picc_write_buffer[8];
+    picc_write_buffer[0] = PICC_CMD_NTAG_WRITE;
+    picc_write_buffer[1] = block_address;
+    memcpy(&picc_write_buffer[2], buffer, 4);
+    rc522_calculate_crc(picc_write_buffer, 6, &picc_write_buffer[6]);
 
-  //   rc522_picc_write(RC522_CMD_TRANSCEIVE, picc_write_buffer, 8, &resp);
-  //   printf("Response size %d\n", resp.size_bits);
-  // }
-  // else if(picc.type == PICC_SUPPORTED_MIFARE_1K)
+    rc522_picc_write(RC522_CMD_TRANSCEIVE, picc_write_buffer, 8, &resp);
+  }
+  else if(picc.type == PICC_SUPPORTED_MIFARE_1K)
   {
     uint8_t picc_cmd_buffer[4];
     // This works for both MIFARE and NTAG since NTAG has the PICC_CMD_NTAG_COMP_WRITE.
@@ -679,10 +678,10 @@ void rc522_write_picc_data(const uint8_t block_address, uint8_t buffer[18])
     rc522_calculate_crc(buffer, 16, &buffer[16]);
     rc522_picc_write(RC522_CMD_TRANSCEIVE, buffer, 18, &resp);
   }
-  // else
-  // {
-  //   printf("Unsupported PICC for write operation!\n");
-  // }
+  else
+  {
+    printf("Unsupported PICC for write operation!\n");
+  }
 
   if (resp.data != NULL)
   {
