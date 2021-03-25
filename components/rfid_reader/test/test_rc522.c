@@ -160,6 +160,11 @@ TEST_CASE("rc522 write NTAG213 data", "[rc522][picc_present]")
   printf("\n");
 
   rc522_picc_halta(PICC_CMD_HALTA);
+
+  if (0 != memcmp(read_picc_data, write_picc_data, 32))
+  {
+    TEST_FAIL_MESSAGE("Data read back from the PICC isn't correct!");
+  }
 }
 
 TEST_CASE("rc522 read PICC's data", "[rc522][picc_present]")
