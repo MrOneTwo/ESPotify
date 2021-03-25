@@ -25,19 +25,19 @@ void app_main(void)
   // unity_run_test_by_name("Mean of an empty array is zero");
   // UNITY_END();
 
-#if defined (CONFIG_PN532)
-  print_banner("Running tests with [pn532] tag");
-  UNITY_BEGIN();
-  unity_run_tests_by_tag("[pn532]", false);
-  UNITY_END();
-#endif // CONFIG_PN532
+  // #if defined (CONFIG_PN532)
+  //   print_banner("Running tests with [pn532] tag");
+  //   UNITY_BEGIN();
+  //   unity_run_tests_by_tag("[pn532]", false);
+  //   UNITY_END();
+  // #endif // CONFIG_PN532
 
-#if defined (CONFIG_RC522)
-  print_banner("Running tests with [rc522] tag");
-  UNITY_BEGIN();
-  unity_run_tests_by_tag("[rc522]", false);
-  UNITY_END();
-#endif // CONFIG_RC522
+  // #if defined (CONFIG_RC522)
+  //   print_banner("Running tests with [rc522] tag");
+  //   UNITY_BEGIN();
+  //   unity_run_tests_by_tag("[rc522]", false);
+  //   UNITY_END();
+  // #endif // CONFIG_RC522
 
   // print_banner("Running tests without [picc_present] tag");
   // UNITY_BEGIN();

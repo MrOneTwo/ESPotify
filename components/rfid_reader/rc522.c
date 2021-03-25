@@ -636,6 +636,7 @@ void rc522_write_picc_data(const uint8_t block_address, uint8_t buffer[18])
   response_t resp = {};
 
   // The compatibility WRITE is supported by NTAG but we're using the native version here.
+  // I had some problems with compatibility WRITE with data being corrupted when written.
   if (picc.type == PICC_SUPPORTED_NTAG213)
   {
     uint8_t picc_write_buffer[8];
