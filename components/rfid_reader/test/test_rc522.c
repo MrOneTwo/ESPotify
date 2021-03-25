@@ -134,11 +134,7 @@ TEST_CASE("rc522 write NTAG213 data", "[rc522][picc_present]")
   // Example data (32_bytes; the hex ID is 22 bytes): "sp_song...7LPRP2wOvP4DAMFBdf4uDZ"
   uint8_t write_picc_data[32] = "sp_song...7LPRP2wOvP4DAMFBdf4uDZ";
 
-  // Write 4 bytes at a time. That's the NTAG way (I think).
-  for(uint8_t i = 0; i < 32 / 4; i++)
-  {
-    rc522_write_picc_data(page + i, write_picc_data + i * 4);
-  }
+  rc522_write_picc_data(page, write_picc_data, 32);
 
   // Read data back. No need to reactivate the NTAG.
   uint8_t read_picc_data[32] = {};

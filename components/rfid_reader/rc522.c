@@ -631,7 +631,7 @@ status_e rc522_read_picc_data(uint8_t block_address, uint8_t buffer[16])
   return SUCCESS;
 }
 
-void rc522_write_picc_data(const uint8_t block_address, uint8_t buffer[18])
+void rc522_write_picc_data(const uint8_t block_address, uint8_t* data, const uint32_t data_len)
 {
   response_t resp = {};
 
@@ -639,65 +639,98 @@ void rc522_write_picc_data(const uint8_t block_address, uint8_t buffer[18])
   // I had some problems with compatibility WRITE with data being corrupted when written.
   if (picc.type == PICC_SUPPORTED_NTAG213)
   {
-    uint8_t picc_write_buffer[8];
-    picc_write_buffer[0] = PICC_CMD_NTAG_WRITE;
-    picc_write_buffer[1] = block_address;
-    memcpy(&picc_write_buffer[2], buffer, 4);
-    rc522_calculate_crc(picc_write_buffer, 6, &picc_write_buffer[6]);
+    // TODO(michalc): More robust? Not writing entire blocks?
+    assert(data_len % 4 == 0);
+    const uint8_t write_operations = data_len / 4;
+    uint8_t picc_write_buffer[8] = {};
 
-    rc522_picc_write(RC522_CMD_TRANSCEIVE, picc_write_buffer, 8, &resp);
+    for (uint8_t i = 0; i < write_operations; i++)
+    {
+      memset(picc_write_buffer, 0, 8);
+      picc_write_buffer[0] = PICC_CMD_NTAG_WRITE;
+      picc_write_buffer[1] = block_address + i;
+      memcpy(picc_write_buffer + 2, data + i * 4, 4);
+      rc522_calculate_crc(picc_write_buffer, 6, &picc_write_buffer[6]);
+
+      rc522_picc_write(RC522_CMD_TRANSCEIVE, picc_write_buffer, 8, &resp);
+
+      if (resp.data != NULL)
+      {
+        if (resp.size_bits == 4)
+        {
+          if (resp.data[0] != PICC_RESPONSE_ACK)
+          {
+            printf("PICC responded with NAK (%x) when trying to write data!\n", resp.data[0]);
+            return;
+          }
+          else
+          {
+            printf("PICC responded with ACK (%x) when trying to write data!\n", resp.data[0]);
+          }
+        }
+      }
+    }  // for write_operations
   }
   else if(picc.type == PICC_SUPPORTED_MIFARE_1K)
   {
-    uint8_t picc_cmd_buffer[4];
+    // TODO(michalc): More robust? Not writing entire blocks?
+    assert(data_len % 16 == 0);
+    const uint8_t write_operations = data_len / 16;
+    uint8_t picc_write_buffer[18] = {};
     // This works for both MIFARE and NTAG since NTAG has the PICC_CMD_NTAG_COMP_WRITE.
-    picc_cmd_buffer[0] = PICC_CMD_MIFARE_WRITE;
-    picc_cmd_buffer[1] = block_address;  // block address.
-    // Calculate the CRC on the RC522 side.
-    rc522_calculate_crc(picc_cmd_buffer, 2, &picc_cmd_buffer[2]);
 
-    // Send the command to PICC.
-    rc522_picc_write(RC522_CMD_TRANSCEIVE, picc_cmd_buffer, 4, &resp);
-
-    if (resp.data != NULL)
+    for (uint8_t i = 0; i < write_operations; i++)
     {
-      if (resp.size_bits == 4)
+      memset(picc_write_buffer, 0, 18);
+      picc_write_buffer[0] = PICC_CMD_MIFARE_WRITE;
+      picc_write_buffer[1] = block_address + i;
+      // Calculate the CRC on the RC522 side.
+      rc522_calculate_crc(picc_write_buffer, 2, &picc_write_buffer[2]);
+
+      // Send the command to PICC.
+      rc522_picc_write(RC522_CMD_TRANSCEIVE, picc_write_buffer, 4, &resp);
+
+      if (resp.data != NULL)
       {
-        if (resp.data[0] != PICC_RESPONSE_ACK)
+        if (resp.size_bits == 4)
         {
-          printf("PICC responded with NAK (%x) when trying to write data!\n", resp.data[0]);
-          return;
-        }
-        else
-        {
-          printf("PICC responded with ACK (%x) when trying to write data!\n", resp.data[0]);
+          if (resp.data[0] != PICC_RESPONSE_ACK)
+          {
+            printf("PICC responded with NAK (%x) when trying to write data!\n", resp.data[0]);
+            return;
+          }
+          else
+          {
+            printf("PICC responded with ACK (%x) when trying to write data!\n", resp.data[0]);
+          }
         }
       }
-    }
 
-    // We always write 16 data + 2 CRC bytes. No other way to do a write.
-    rc522_calculate_crc(buffer, 16, &buffer[16]);
-    rc522_picc_write(RC522_CMD_TRANSCEIVE, buffer, 18, &resp);
+      // We always write 16 data + 2 CRC bytes. No other way to do a write.
+      memcpy(picc_write_buffer, data + 16 * i, 16);
+      rc522_calculate_crc(picc_write_buffer, 16, &picc_write_buffer[16]);
+      rc522_picc_write(RC522_CMD_TRANSCEIVE, picc_write_buffer, 18, &resp);
+
+      if (resp.data != NULL)
+      {
+        if (resp.size_bits == 4)
+        {
+          if (resp.data[0] != PICC_RESPONSE_ACK)
+          {
+            printf("PICC responded with NAK (%x) when trying to write data!\n", resp.data[0]);
+            return;
+          }
+          else
+          {
+            printf("PICC responded with ACK (%x) when trying to write data!\n", resp.data[0]);
+          }
+        }
+      }
+    }  // for write operations
   }
   else
   {
     printf("Unsupported PICC for write operation!\n");
-  }
-
-  if (resp.data != NULL)
-  {
-    if (resp.size_bits == 4)
-    {
-      if (resp.data[0] != PICC_RESPONSE_ACK)
-      {
-        printf("PICC responded with NAK (%x) when trying to write data!\n", resp.data[0]);
-        return;
-      }
-      else
-      {
-        printf("PICC responded with ACK (%x) when trying to write data!\n", resp.data[0]);
-      }
-    }
   }
 
   return;

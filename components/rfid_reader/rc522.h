@@ -172,7 +172,7 @@ picc_t rc522_get_last_picc(void);
 bool rc522_anti_collision(uint8_t cascade_level);
 
 status_e rc522_read_picc_data(uint8_t block_adress, uint8_t buffer[16]);
-void rc522_write_picc_data(const uint8_t block_address, uint8_t buffer[18]);
+void rc522_write_picc_data(const uint8_t block_address, uint8_t* data, const uint32_t data_len);
 
 
 /*

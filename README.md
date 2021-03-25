@@ -38,12 +38,15 @@ ninja
 
 ### RFID
 
-Currently, readers based on two chips are targetted: MFRC522, PN532.
+Currently, readers based on two chips are targetted: MFRC522, PN532. The listed PICC types aren't
+100% covered whtn it comes to their functionality. If they are checked that means they work for
+this projects.
 
 - [ ] MFRC522 driver
   - [x] Mifare PICCs (ISO14443A) with 4 byte UID
   - [ ] Mifare PICCs (ISO14443A) with 7 byte UID (implemented; not tested)
   - [ ] Mifare PICCs (ISO14443A) with 10 byte UID (implemented; not tested)
+  - [x] NTAG213 PICCs with 4 byte UID
 
 - [ ] PN532
   - [ ] Mifare PICCs with 4 byte UID

@@ -90,7 +90,7 @@ void task_rfid_read_or_write(void* pvParameters)
     }
 
     // 16 bytes and 2 bytes for CRC.
-    uint8_t transfer_buffer[18] = {};
+    uint8_t transfer_buffer[32] = {};
     const char* song_id = spotify_playback.song_id;
     uint8_t msg[32] = {};
 
@@ -101,18 +101,10 @@ void task_rfid_read_or_write(void* pvParameters)
       uint8_t write_buffer[32] = {};
       memset(write_buffer, '.', 32);
       memcpy(write_buffer, "sp_song", strlen("sp_song"));
-      // TODO(michalc): why this is two memcpys? Looks broken.
-      // Copy the last 16 bytes of the song id.
-      memcpy(write_buffer + 16, song_id + strlen(song_id) - 16, 16);
-      // Copy the length - last 16 bytes of the song id.
-      memcpy(write_buffer + 16 - (strlen(song_id) - 16), song_id, strlen(song_id) - 16);
+      // Copy the song ID aligned to the end of the buffer.
+      memcpy(write_buffer + 32 - strlen(song_id), song_id, strlen(song_id));
 
-      // Write the data into PICC.
-      memcpy(transfer_buffer, write_buffer, 16);
-      rc522_write_picc_data(block_initial, transfer_buffer);
-
-      memcpy(transfer_buffer, write_buffer + 16, 16);
-      rc522_write_picc_data(block_initial + 1, transfer_buffer);
+      rc522_write_picc_data(block_initial, write_buffer, 32);
     }
     // Value 0f 0x0 means reading.
     else if (reading_or_writing == RFID_OP_READ)
