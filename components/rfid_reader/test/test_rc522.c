@@ -151,11 +151,11 @@ TEST_CASE("rc522 write NTAG213 data", "[rc522][picc_present]")
   }
   printf("\n");
 
-  rc522_read_picc_data(page + 4, read_picc_data);
+  rc522_read_picc_data(page + 4, read_picc_data + 16);
   printf("%02d: ", page + 4);
   for (uint8_t i = 0; i < 16; i++)
   {
-    printf("%c ", read_picc_data[i]);
+    printf("%c ", read_picc_data[i + 16]);
   }
   printf("\n");
 
