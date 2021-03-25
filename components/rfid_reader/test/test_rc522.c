@@ -6,6 +6,8 @@
 #include "rc522.h"
 #include "periph.h"
 
+#include <string.h>
+
 
 TEST_CASE("rc522 init", "[rc522]")
 { 
@@ -126,27 +128,39 @@ TEST_CASE("rc522 write NTAG213 data", "[rc522][picc_present]")
 
   TEST_ASSERT_EQUAL(SUCCESS, rc522_picc_get_version());
 
-  const uint8_t page = 10;
+  const uint8_t page = 16;
 
   // Write data. Writing to NTAG213 in compatibility mode writes only 4 bytes.
-  uint8_t write_picc_data[18] = {0x8, 0x4, 0x2, 0x1, 0xFF, 0x0, 0x0, 0x0,
-                                 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0};
+  // Example data (32_bytes; the hex ID is 22 bytes): "sp_song...7LPRP2wOvP4DAMFBdf4uDZ"
+  uint8_t write_picc_data[32] = "sp_song...7LPRP2wOvP4DAMFBdf4uDZ";
 
-  rc522_write_picc_data(page, write_picc_data);
+  // Write 4 bytes at a time. That's the NTAG way (I think).
+  for(uint8_t i = 0; i < 32 / 4; i++)
+  {
+    rc522_write_picc_data(page + i, write_picc_data + i * 4);
+  }
 
   rc522_picc_halta(PICC_CMD_HALTA);
+
+  // Read data back.
+  uint8_t read_picc_data[32] = {};
 
   TEST_ASSERT_EQUAL(true, rc522_picc_reqa_or_wupa(PICC_CMD_WUPA));
   TEST_ASSERT_EQUAL(true, rc522_anti_collision(1));
 
-  // Read data back.
-  uint8_t read_picc_data[16] = {};
-
   rc522_read_picc_data(page, read_picc_data);
-
+  printf("%02d: ", page);
   for (uint8_t i = 0; i < 16; i++)
   {
-    printf("%02x ", read_picc_data[i]);
+    printf("%c ", read_picc_data[i]);
+  }
+  printf("\n");
+
+  rc522_read_picc_data(page + 4, read_picc_data);
+  printf("%02d: ", page + 4);
+  for (uint8_t i = 0; i < 16; i++)
+  {
+    printf("%c ", read_picc_data[i]);
   }
   printf("\n");
 

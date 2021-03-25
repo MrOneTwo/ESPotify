@@ -726,6 +726,10 @@ rc522_authenticate(uint8_t cmd_auth_key_a_or_b,
   assert(resp.data == NULL);
 }
 
+/*
+ * TODO(michalc): this should be part of examples of this component.
+ * This is an unused function which shows how to start scanning for the tags.
+ * Currently the actual processing is in the tasks.c.
 static void rc522_timer_callback(void* arg)
 {
   status_e picc_present = rc522_test_picc_presence();
@@ -776,8 +780,6 @@ static void rc522_timer_callback(void* arg)
   cb(picc.uid);
 }
 
-/*
- * This is an unused function which shows how to start scanning for the tags.
 esp_err_t rc522_start_scanning()
 {
   const esp_timer_create_args_t timer_args = {

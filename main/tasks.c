@@ -72,8 +72,10 @@ void task_rfid_read_or_write(void* pvParameters)
     scanning_timer_pause();
     ESP_LOGI("tasks", "Reading or writing to PICC");
 
-    const uint8_t sector = 2;
-    const uint8_t block = 4 * sector - 4;
+    // MIFARE's first sector is not fully available since the first block is taken.
+    // NTAG has first 5 (or 4, confused atm) pages (4 byte chunk) taken by manufacturer data.
+    const uint8_t sector = 5;
+    const uint32_t block_initial = 4 * sector - 4;
 
     // If we call the authentication on a PICC that doesn't conform to this type of authentication
     // we risk sending the PICC back into the original state. That might be an IDLE state.
@@ -84,7 +86,7 @@ void task_rfid_read_or_write(void* pvParameters)
       const uint8_t key[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 
       // Authenticate sector access.
-      rc522_authenticate(PICC_CMD_MIFARE_AUTH_KEY_A, block, key);
+      rc522_authenticate(PICC_CMD_MIFARE_AUTH_KEY_A, block_initial, key);
     }
 
     // 16 bytes and 2 bytes for CRC.
@@ -99,6 +101,7 @@ void task_rfid_read_or_write(void* pvParameters)
       uint8_t write_buffer[32] = {};
       memset(write_buffer, '.', 32);
       memcpy(write_buffer, "sp_song", strlen("sp_song"));
+      // TODO(michalc): why this is two memcpys? Looks broken.
       // Copy the last 16 bytes of the song id.
       memcpy(write_buffer + 16, song_id + strlen(song_id) - 16, 16);
       // Copy the length - last 16 bytes of the song id.
@@ -106,10 +109,10 @@ void task_rfid_read_or_write(void* pvParameters)
 
       // Write the data into PICC.
       memcpy(transfer_buffer, write_buffer, 16);
-      rc522_write_picc_data(block, transfer_buffer);
+      rc522_write_picc_data(block_initial, transfer_buffer);
 
       memcpy(transfer_buffer, write_buffer + 16, 16);
-      rc522_write_picc_data(block + 1, transfer_buffer);
+      rc522_write_picc_data(block_initial + 1, transfer_buffer);
     }
     // Value 0f 0x0 means reading.
     else if (reading_or_writing == RFID_OP_READ)
@@ -118,7 +121,9 @@ void task_rfid_read_or_write(void* pvParameters)
       // We want to send a message to the Spotify task.
       spotify_should_act = 1;
 
-      if (rc522_read_picc_data(block, transfer_buffer) != SUCCESS)
+      uint32_t block_to_read = block_initial;
+
+      if (rc522_read_picc_data(block_to_read, transfer_buffer) != SUCCESS)
       {
         spotify_should_act = 0;
       }
@@ -127,7 +132,17 @@ void task_rfid_read_or_write(void* pvParameters)
         memcpy(read_buffer, transfer_buffer, 16);
       }
 
-      if (rc522_read_picc_data(block + 1, transfer_buffer) != SUCCESS)
+      // There is different block addressing for different PICCs.
+      if (rc522_get_last_picc().type == PICC_SUPPORTED_MIFARE_1K)
+      {
+        block_to_read = block_to_read + 1;
+      }
+      else if (rc522_get_last_picc().type == PICC_SUPPORTED_NTAG213)
+      {
+        block_to_read = block_to_read + 4;
+      }
+
+      if (rc522_read_picc_data(block_to_read, transfer_buffer) != SUCCESS)
       {
         spotify_should_act = 0;
       }
