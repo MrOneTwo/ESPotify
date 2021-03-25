@@ -140,13 +140,8 @@ TEST_CASE("rc522 write NTAG213 data", "[rc522][picc_present]")
     rc522_write_picc_data(page + i, write_picc_data + i * 4);
   }
 
-  rc522_picc_halta(PICC_CMD_HALTA);
-
-  // Read data back.
+  // Read data back. No need to reactivate the NTAG.
   uint8_t read_picc_data[32] = {};
-
-  TEST_ASSERT_EQUAL(true, rc522_picc_reqa_or_wupa(PICC_CMD_WUPA));
-  TEST_ASSERT_EQUAL(true, rc522_anti_collision(1));
 
   rc522_read_picc_data(page, read_picc_data);
   printf("%02d: ", page);
