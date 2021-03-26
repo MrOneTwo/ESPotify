@@ -11,6 +11,7 @@ PN532_HOST_TO_PN532 = 0xd4
 PN532_PN532_TO_HOST = 0xd5
 
 PN532_CMD_GET_FIRMWARE_VERSION = 0x02
+PN532_CMD_READ_GPIO = 0x0c
 
 PN532_SPI_STAT_READ = 0x02
 PN532_SPI_DATA_WRITE = 0x01
@@ -26,7 +27,7 @@ class PN532():
   def __init__(self, spi: spidriver.SPIDriver):
     self.spi = spi
 
-  def write_command(self, cmd):
+  def write_command(self, cmd, read_bytes: int = 0):
     buf = pack('B', PN532_SPI_DATA_WRITE)
 
     buf += pack('B', PN532_PREAMBLE)
@@ -57,6 +58,11 @@ class PN532():
     self.spi.write(bytes(buf))
     self.spi.unsel()
 
+    if read_bytes > 0:
+      self.spi.sel()
+      self.spi.read(read_bytes)
+      self.spi.unsel()
+
 
 
 def com(port: str):
@@ -64,12 +70,15 @@ def com(port: str):
 
   pn532 = PN532(spi)
 
-  pn532.write_command([PN532_CMD_GET_FIRMWARE_VERSION])
+  spi.sel()
+  spi.write([PN532_SPI_STAT_READ])
+  spi.unsel()
+  spi.sel()
+  spi.read(1)
+  spi.unsel()
 
-
-  # spi.sel()
-  # print(spi.writeread([PN532_SPI_STAT_READ]))
-  # spi.unsel()
+  # pn532.write_command([PN532_CMD_GET_FIRMWARE_VERSION])
+  pn532.write_command([PN532_CMD_READ_GPIO])
 
 
 if __name__ == "__main__":
