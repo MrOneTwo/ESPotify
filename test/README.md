@@ -16,3 +16,24 @@ Change the RFID reader in the *main/CMakeLists.txt*:
 ```
 idf_build_set_property(COMPILE_DEFINITIONS -DCONFIG_RC522 APPEND)
 ```
+
+If you want to test a specific component run:
+
+```
+pushd test/build && cmake .. -D TEST_COMPONENTS="spotify"; popd
+ninja -C test/build flash
+```
+
+or:
+
+```
+pushd test/build && cmake .. -D TEST_COMPONENTS="rfid_reader"; popd
+ninja -C test/build flash
+```
+
+or:
+
+```
+pushd test/build && cmake .. -D TEST_COMPONENTS="rfid_reader spotify"; popd
+ninja -C test/build flash
+```

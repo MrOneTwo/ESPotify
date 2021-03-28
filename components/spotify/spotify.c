@@ -172,23 +172,16 @@ void spotify_next_song(void)
   esp_http_client_cleanup(client);
 }
 
-void spotify_get_playlist(const uint8_t playlist_idx)
+void spotify_get_playlist(const uint32_t playlist_idx)
 {
   // TODO(michalc): offset should be settable
   const char* _url = "https://api.spotify.com/v1/me/playlists?limit=1&offset=";
   // The idea below is to use the scratch buffer for building the URL and the header.
   char* const spotify_url = scratch_mem;
-  memcpy(spotify_url, _url, strlen(_url));
-  // Convert to ASCII number.
-  // TODO(michalc): this doesn't support numbers higher than 9.
-  const char playlist_idx_char = playlist_idx + 30;
-  memset(spotify_url + strlen(_url), playlist_idx_char, 1);
-  *(spotify_url + strlen(_url) + 1) = 0;
+  snprintf(spotify_url, SCRATCH_MEM_SIZE, "%s%d", _url, playlist_idx);
 
-  char* const spotify_header = (scratch_mem + strlen(_url) + 1 + 1);
-  memcpy(spotify_header, "Bearer ", 7);
-  memcpy(spotify_header + 7, spotify.access_token, strlen(spotify.access_token));
-  *(spotify_header + 7 + strlen(spotify.access_token)) = 0;
+  char* const spotify_header = (scratch_mem + strlen(spotify_url) + 1);
+  snprintf(spotify_header, SCRATCH_MEM_SIZE, "Bearer %s", spotify.access_token);
 
   // TODO(michalc): the response should read the 'total' field
   // TODO(michalc): the 'next' field is the url to the next playlist
@@ -209,6 +202,9 @@ void spotify_get_playlist(const uint8_t playlist_idx)
              esp_http_client_get_status_code(client),
              esp_http_client_get_content_length(client));
   }
+
+  // Closing the connection.
+  esp_http_client_cleanup(client);
 }
 
 static esp_err_t spotify_http_event_handler(esp_http_client_event_t *evt)
@@ -251,8 +247,11 @@ static esp_err_t spotify_http_event_handler(esp_http_client_event_t *evt)
         // cJSON_Parse mallocs memory! Remember to run cJSON_Delete.
         cJSON* response_json = cJSON_Parse(response_buf);
 
+        // The reponse contains the request that was sent under the href key.
+        cJSON* href = cJSON_GetObjectItem(response_json, "href");
         cJSON* access_token = cJSON_GetObjectItem(response_json, "access_token");
         cJSON* error = cJSON_GetObjectItem(response_json, "error");
+
         if (error != NULL)
         {
           cJSON* error_message = cJSON_GetObjectItem(response_json, "message");
@@ -269,6 +268,14 @@ static esp_err_t spotify_http_event_handler(esp_http_client_event_t *evt)
               ESP_LOGE(TAG, "The access token expired!");
               spotify.fresh = false;
             }
+          }
+        }
+
+        if (href != NULL)
+        {
+          if (strstr(cJSON_GetStringValue(href), "playlists"))
+          {
+            ESP_LOGI(TAG, "Handling the playlists reponse!");
           }
         }
 

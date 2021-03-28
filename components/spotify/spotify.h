@@ -62,4 +62,6 @@ void spotify_enqueue_song(const char* const song_id);
  */
 void spotify_next_song(void);
 
+void spotify_get_playlist(const uint32_t playlist_idx);
+
 #endif // SPOTIFY_H
