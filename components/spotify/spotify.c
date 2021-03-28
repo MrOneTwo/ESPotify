@@ -25,7 +25,7 @@ static char* response_buf = NULL;
 static char* scratch_mem = NULL;
 
 
-void spotify_init()
+void spotify_init(void)
 {
   spotify.fresh = false;
   // This is used instead of `inited` field. It's used when the code in tasks.c write using the
@@ -45,12 +45,12 @@ void spotify_init()
   scratch_mem = (char*)malloc(SCRATCH_MEM_SIZE);
 }
 
-uint8_t spotify_is_fresh_access_token()
+uint8_t spotify_is_fresh_access_token(void)
 {
   return spotify.fresh;
 }
 
-void spotify_refresh_access_token()
+void spotify_refresh_access_token(void)
 {
   const char* const _url= "https://accounts.spotify.com/api/token";
 
@@ -83,7 +83,7 @@ void spotify_refresh_access_token()
   esp_http_client_cleanup(client);
 }
 
-void spotify_query()
+void spotify_query(void)
 {
   const char* const _url = "https://api.spotify.com/v1/me/player";
   snprintf(scratch_mem, SCRATCH_MEM_SIZE, "Bearer %s", spotify.access_token);
@@ -145,7 +145,7 @@ void spotify_enqueue_song(const char* const song_id)
   esp_http_client_cleanup(client);
 }
 
-void spotify_next_song()
+void spotify_next_song(void)
 {
   const char* _url = "https://api.spotify.com/v1/me/player/next";
   snprintf(scratch_mem, SCRATCH_MEM_SIZE, "Bearer %s", spotify.access_token);
@@ -170,6 +170,45 @@ void spotify_next_song()
 
   // Closing the connection.
   esp_http_client_cleanup(client);
+}
+
+void spotify_get_playlist(const uint8_t playlist_idx)
+{
+  // TODO(michalc): offset should be settable
+  const char* _url = "https://api.spotify.com/v1/me/playlists?limit=1&offset=";
+  // The idea below is to use the scratch buffer for building the URL and the header.
+  char* const spotify_url = scratch_mem;
+  memcpy(spotify_url, _url, strlen(_url));
+  // Convert to ASCII number.
+  // TODO(michalc): this doesn't support numbers higher than 9.
+  const char playlist_idx_char = playlist_idx + 30;
+  memset(spotify_url + strlen(_url), playlist_idx_char, 1);
+  *(spotify_url + strlen(_url) + 1) = 0;
+
+  char* const spotify_header = (scratch_mem + strlen(_url) + 1 + 1);
+  memcpy(spotify_header, "Bearer ", 7);
+  memcpy(spotify_header + 7, spotify.access_token, strlen(spotify.access_token));
+  *(spotify_header + 7 + strlen(spotify.access_token)) = 0;
+
+  // TODO(michalc): the response should read the 'total' field
+  // TODO(michalc): the 'next' field is the url to the next playlist
+
+  esp_http_client_config_t config = {
+    .url = spotify_url,
+    .transport_type = HTTP_TRANSPORT_OVER_SSL,
+    .event_handler = spotify_http_event_handler,
+  };
+  esp_http_client_handle_t client = esp_http_client_init(&config);
+  esp_http_client_set_header(client, "Authorization", spotify_header);
+  esp_http_client_set_method(client, HTTP_METHOD_GET);
+
+  esp_err_t err = esp_http_client_perform(client);
+
+  if (err == ESP_OK) {
+    ESP_LOGW(TAG, "Status = %d, content_length = %d",
+             esp_http_client_get_status_code(client),
+             esp_http_client_get_content_length(client));
+  }
 }
 
 static esp_err_t spotify_http_event_handler(esp_http_client_event_t *evt)

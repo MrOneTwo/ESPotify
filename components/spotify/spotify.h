@@ -36,21 +36,21 @@ extern spotify_playback_t spotify_playback;
 /*
  * Init structures - mostly about setting the access tokens/codes.
  */
-void spotify_init();
+void spotify_init(void);
 
 /*
  */
-uint8_t spotify_is_fresh_access_token();
+uint8_t spotify_is_fresh_access_token(void);
 
 /*
  * Use the refresh token to update the access token. Access token expires after 1 hour.
  */
-void spotify_refresh_access_token();
+void spotify_refresh_access_token(void);
 
 /*
  * This updates the spotify_playback_t static structure.
  */
-void spotify_query();
+void spotify_query(void);
 
 /*
  * Push a song to the Spotify's queue.
@@ -60,6 +60,6 @@ void spotify_enqueue_song(const char* const song_id);
 /*
  * Make Spotify jump to the next song in the queue.
  */
-void spotify_next_song();
+void spotify_next_song(void);
 
 #endif // SPOTIFY_H
