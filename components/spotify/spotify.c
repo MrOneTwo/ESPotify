@@ -275,7 +275,10 @@ static esp_err_t spotify_http_event_handler(esp_http_client_event_t *evt)
         {
           if (strstr(cJSON_GetStringValue(href), "playlists"))
           {
-            ESP_LOGI(TAG, "Handling the playlists reponse!");
+            cJSON* item = cJSON_GetArrayItem(cJSON_GetObjectItem(response_json, "items"), 0);
+            ESP_LOGI(TAG, "Got a response for the playlist %s ID %s",
+                          cJSON_GetStringValue(cJSON_GetObjectItem(item, "name")),
+                          cJSON_GetStringValue(cJSON_GetObjectItem(item, "id")));
           }
         }
 
