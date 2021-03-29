@@ -101,7 +101,7 @@ typedef struct response_t {
 // A example callback that the user can register.
 void tag_handler(uint8_t* serial_no);
 
-esp_err_t rc522_write_n(uint8_t addr, uint8_t data_size, uint8_t *data);
+esp_err_t rc522_write_n(uint8_t addr, uint8_t data_size, const uint8_t* const data);
 esp_err_t rc522_write(uint8_t addr , uint8_t val);
 uint8_t* rc522_read_n(uint8_t addr, uint8_t n) ;
 uint8_t rc522_read(uint8_t addr);
@@ -141,7 +141,7 @@ bool rc522_say_hello(void);
  * This function returns both: response's size in bytes and in bits. That's because it's possible
  * to receive a partial byte. It's important during anti collision stage.
  */
-void rc522_picc_write(rc522_commands_e cmd, uint8_t* data, uint8_t data_size, response_t* response);
+void rc522_picc_write(rc522_commands_e cmd, const uint8_t* const data, const uint8_t data_size, response_t* const response);
 
 /*
  * Sends a PICC_CMD_REQA to move the PICC from IDLE state into Ready 1 state.

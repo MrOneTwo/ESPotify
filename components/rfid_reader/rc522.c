@@ -106,7 +106,8 @@ rc522_say_hello()
   return ret;
 }
 
-esp_err_t rc522_write_n(uint8_t addr, uint8_t data_size, uint8_t *data)
+esp_err_t
+rc522_write_n(uint8_t addr, uint8_t data_size, const uint8_t* const data)
 {
   // The address gets concatenated with the data here.
   uint8_t* buffer = scratch_mem;
@@ -236,13 +237,11 @@ static void rc522_calculate_crc(uint8_t *data, uint8_t data_size, uint8_t* crc_b
 }
 
 void rc522_picc_write(rc522_commands_e cmd,
-                      uint8_t* data, uint8_t data_size,
-                      response_t* response)
+                      const uint8_t* const data, const uint8_t data_size,
+                      response_t* const response)
 {
-  uint8_t irq = 0x00;
-  uint8_t irq_wait = 0x00;
-  uint8_t last_bits = 0;
-  uint8_t nn = 0;
+  uint8_t irq = 0;
+  uint8_t irq_wait = 0;
   
   if (cmd == RC522_CMD_MF_AUTH)
   {
@@ -272,18 +271,15 @@ void rc522_picc_write(rc522_commands_e cmd,
 
   if(cmd == RC522_CMD_TRANSCEIVE)
   {
-    // All bits of the last byte will be transmitted.
+    // SEND THE DATA!!!
     rc522_set_bitmask(RC522_REG_BIT_FRAMING, 0x80);
   }
 
-  uint16_t i = 1000;
+  uint16_t dont_lock = 1000;
 
   while (1)
   {
-    nn = rc522_read(RC522_REG_COM_IRQ);
-    i--;
-
-    if (!i) break;
+    uint8_t nn = rc522_read(RC522_REG_COM_IRQ);
 
     // Check for possible interrupts.
     if (nn & irq_wait)
@@ -296,12 +292,14 @@ void rc522_picc_write(rc522_commands_e cmd,
     {
       break;
     }
+
+    if (--dont_lock == 0) break;
   }
 
   // Stop the transmission to PICC.
   rc522_clear_bitmask(RC522_REG_BIT_FRAMING, 0x80);
 
-  if (i != 0)
+  if (dont_lock != 0)
   {
     // Check for 0b11011 error bits.
     if((rc522_read(RC522_REG_ERROR) & 0x1B) == 0x00)
@@ -313,7 +311,7 @@ void rc522_picc_write(rc522_commands_e cmd,
         response->size_bytes = rc522_read(RC522_REG_FIFO_LEVEL);
         // Returns the number of valid bits in the last received byte. The response might have been
         // smaller than 1 byte.
-        last_bits = rc522_read(RC522_REG_CONTROL) & 0x07;
+        const uint8_t last_bits = rc522_read(RC522_REG_CONTROL) & 0x07;
         if (last_bits == 0)
         {
           response->size_bits = response->size_bytes * 8U;
@@ -328,9 +326,9 @@ void rc522_picc_write(rc522_commands_e cmd,
           // Using the second half of the scratch_mem for incoming data.
           response->data = (scratch_mem + 2 * (SCRATCH_MEM_SIZE / 3));
           // Read the data into scratch memory.
-          for(i = 0; i < response->size_bytes; i++)
+          for(uint32_t j = 0; j < response->size_bytes; j++)
           {
-            response->data[i] = rc522_read(RC522_REG_FIFO_DATA);
+            response->data[j] = rc522_read(RC522_REG_FIFO_DATA);
           }
         }
         else
