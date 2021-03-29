@@ -498,6 +498,7 @@ rc522_anti_collision(uint8_t cascade_level)
     // Here we skip copying of the BCC byte.
     picc.uid_full = true;
     memcpy(picc.uid, resp.data, resp.size_bytes - 1);
+    // TODO(michalc): fix this - it should add more bits, not set.
     picc.uid_bits = 4 * 8;
     picc.uid_hot = 1;
   }
@@ -506,6 +507,7 @@ rc522_anti_collision(uint8_t cascade_level)
     // Here we skip copying both CT byte and the BCC byte.
     picc.uid_full = false;
     memcpy(picc.uid, resp.data + 1, resp.size_bytes - 2);
+    // TODO(michalc): fix this - it should add more bits, not set.
     picc.uid_bits = 3 * 8;
     picc.uid_hot = 1;
   }
