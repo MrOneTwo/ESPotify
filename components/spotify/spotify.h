@@ -64,4 +64,6 @@ void spotify_next_song(void);
 
 void spotify_get_playlist(const uint32_t playlist_idx);
 
+void spotify_get_playlist_song(const char* playlist_id, const uint32_t song_idx);
+
 #endif // SPOTIFY_H

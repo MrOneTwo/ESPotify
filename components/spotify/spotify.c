@@ -174,7 +174,6 @@ void spotify_next_song(void)
 
 void spotify_get_playlist(const uint32_t playlist_idx)
 {
-  // TODO(michalc): offset should be settable
   const char* _url = "https://api.spotify.com/v1/me/playlists?limit=1&offset=";
   // The idea below is to use the scratch buffer for building the URL and the header.
   char* const spotify_url = scratch_mem;
@@ -185,6 +184,38 @@ void spotify_get_playlist(const uint32_t playlist_idx)
 
   // TODO(michalc): the response should read the 'total' field
   // TODO(michalc): the 'next' field is the url to the next playlist
+
+  esp_http_client_config_t config = {
+    .url = spotify_url,
+    .transport_type = HTTP_TRANSPORT_OVER_SSL,
+    .event_handler = spotify_http_event_handler,
+  };
+  esp_http_client_handle_t client = esp_http_client_init(&config);
+  esp_http_client_set_header(client, "Authorization", spotify_header);
+  esp_http_client_set_method(client, HTTP_METHOD_GET);
+
+  esp_err_t err = esp_http_client_perform(client);
+
+  if (err == ESP_OK) {
+    ESP_LOGW(TAG, "Status = %d, content_length = %d",
+             esp_http_client_get_status_code(client),
+             esp_http_client_get_content_length(client));
+  }
+
+  // Closing the connection.
+  esp_http_client_cleanup(client);
+}
+
+void spotify_get_playlist_song(const char* playlist_id, const uint32_t song_idx)
+{
+  const char* _url = "https://api.spotify.com/v1/playlists/";
+  // The idea below is to use the scratch buffer for building the URL and the header.
+  char* const spotify_url = scratch_mem;
+  snprintf(spotify_url, SCRATCH_MEM_SIZE,
+           "%s%s/tracks?%s&%s%d", _url, playlist_id, "fields=items(href(),track(name,id)),total()", "limit=1&offset=", song_idx);
+
+  char* const spotify_header = (scratch_mem + strlen(spotify_url) + 1);
+  snprintf(spotify_header, SCRATCH_MEM_SIZE, "Bearer %s", spotify.access_token);
 
   esp_http_client_config_t config = {
     .url = spotify_url,
