@@ -350,10 +350,10 @@ void app_main(void)
 
     // // NOTE(michalc): the ESP_LOGI below flushes the output I think. That's why those prinfs fails
     // // without subsequent ESP_LOGI.
-    // printf("Music playing: %s\n", spotify_playback.is_playing ? "YES" : "NO");
-    // printf("Artist: %s\n", spotify_playback.artist);
-    // printf("Song: %s\n", spotify_playback.song_title);
-    // printf("Song ID: %s\n", spotify_playback.song_id);
+    // printf("Music playing: %s\n", spotify_context.is_playing ? "YES" : "NO");
+    // printf("Artist: %s\n", spotify_context.artist);
+    // printf("Song: %s\n", spotify_context.song_title);
+    // printf("Song ID: %s\n", spotify_context.song_id);
   }
 
   if (start_webserver() == NULL)
