@@ -212,7 +212,7 @@ void spotify_get_playlist_song(const char* playlist_id, const uint32_t song_idx)
   // The idea below is to use the scratch buffer for building the URL and the header.
   char* const spotify_url = scratch_mem;
   snprintf(spotify_url, SCRATCH_MEM_SIZE,
-           "%s%s/tracks?%s&%s%d", _url, playlist_id, "fields=items(href(),track(name,id)),total()", "limit=1&offset=", song_idx);
+           "%s%.*s/tracks?%s&%s%d", _url, MAX_PLAYLIST_ID_LENGTH, playlist_id, "fields=href(),items(track(name,id)),total()", "limit=1&offset=", song_idx);
 
   char* const spotify_header = (scratch_mem + strlen(spotify_url) + 1);
   snprintf(spotify_header, SCRATCH_MEM_SIZE, "Bearer %s", spotify.access_token);
@@ -304,12 +304,25 @@ static esp_err_t spotify_http_event_handler(esp_http_client_event_t *evt)
 
         if (href != NULL)
         {
+          // TODO(michalc): this is fugly. The second !strstr is here because otherwise we enter this
+          // when reading a song from a playlist but since the repsponse isn't the same this crashes.
           if (strstr(cJSON_GetStringValue(href), "playlists"))
           {
-            cJSON* item = cJSON_GetArrayItem(cJSON_GetObjectItem(response_json, "items"), 0);
-            ESP_LOGI(TAG, "Got a response for the playlist %s ID %s",
-                          cJSON_GetStringValue(cJSON_GetObjectItem(item, "name")),
-                          cJSON_GetStringValue(cJSON_GetObjectItem(item, "id")));
+            // This is where the 'get song from playlist' response goes.
+            if (strstr(cJSON_GetStringValue(href), "tracks"))
+            {
+            }
+            // This is where the 'get playlist by index' response goes.
+            else
+            {
+              cJSON* item = cJSON_GetArrayItem(cJSON_GetObjectItem(response_json, "items"), 0);
+              ESP_LOGI(TAG, "Got a response for the playlist %s ID %s",
+                            cJSON_GetStringValue(cJSON_GetObjectItem(item, "name")),
+                            cJSON_GetStringValue(cJSON_GetObjectItem(item, "id")));
+              strncpy(spotify_context.playlist_id,
+                      cJSON_GetStringValue(cJSON_GetObjectItem(item, "id")),
+                      MAX_PLAYLIST_ID_LENGTH);
+            }
           }
         }
 
