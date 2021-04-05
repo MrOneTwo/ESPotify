@@ -91,12 +91,12 @@ void task_rfid_read_or_write(void* pvParameters)
 
     // 16 bytes and 2 bytes for CRC.
     uint8_t transfer_buffer[32] = {};
-    const char* song_id = spotify_playback.song_id;
+    const char* song_id = spotify_context.song_id;
     uint8_t msg[32] = {};
 
-    if (reading_or_writing == RFID_OP_WRITE && spotify_playback.is_playing != 0xFF)
+    if (reading_or_writing == RFID_OP_WRITE && spotify_context.is_playing != 0xFF)
     {
-      // TODO(michalc): wait for refresh of the Spotify's playback state.
+      // TODO(michalc): wait for refresh of the Spotify's context state.
 
       uint8_t write_buffer[32] = {};
       memset(write_buffer, '.', 32);

@@ -8,9 +8,10 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#define MAX_SONG_TITLE_LENGTH   (64U)
-#define MAX_SONG_ID_LENGTH      (32U)
-#define MAX_ARTIST_NAME_LENGTH  (64U)
+#define MAX_SONG_TITLE_LENGTH       (64U)
+#define MAX_SONG_ID_LENGTH          (32U)
+#define MAX_PLAYLIST_ID_LENGTH      (32U)
+#define MAX_ARTIST_NAME_LENGTH      (64U)
 
 typedef struct spotify_access_t
 {
@@ -21,17 +22,18 @@ typedef struct spotify_access_t
   char access_token[256];
 } spotify_access_t;
 
-typedef struct spotify_playback_t
+typedef struct spotify_context_t
 {
   uint8_t is_playing;
   char artist[MAX_ARTIST_NAME_LENGTH];
   char song_title[MAX_SONG_TITLE_LENGTH];
   char song_id[MAX_SONG_ID_LENGTH];
-} spotify_playback_t;
+  char playlist_id[MAX_PLAYLIST_ID_LENGTH];
+} spotify_context_t;
 
 // TODO(michalc): instead of making it extern and passing it every time it's probably better to
 // just operate on it inside the spotify module and never expose it.
-extern spotify_playback_t spotify_playback;
+extern spotify_context_t spotify_context;
 
 /*
  * Init structures - mostly about setting the access tokens/codes.

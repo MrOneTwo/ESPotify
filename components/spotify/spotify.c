@@ -10,7 +10,7 @@ static const char* TAG = "ESPotify";
 
 // This struct is available through extern in spotify.h.
 spotify_access_t spotify;
-spotify_playback_t spotify_playback;
+spotify_context_t spotify_context;
 
 /*
  * HTTP event handler for the spotify module. This is where response's are collected in a static
@@ -29,8 +29,8 @@ void spotify_init(void)
 {
   spotify.fresh = false;
   // This is used instead of `inited` field. It's used when the code in tasks.c write using the
-  // current spotify_playback.song_id. I don't want it to write crap into PICC.
-  spotify_playback.is_playing = 0xFF;
+  // current spotify_context.song_id. I don't want it to write crap into PICC.
+  spotify_context.is_playing = 0xFF;
   memset(spotify.client_id, 0, sizeof(spotify.client_id));
   memset(spotify.client_secret, 0, sizeof(spotify.client_secret));
   memset(spotify.refresh_token, 0, sizeof(spotify.refresh_token));
@@ -332,11 +332,11 @@ static esp_err_t spotify_http_event_handler(esp_http_client_event_t *evt)
           {
             if (cJSON_IsTrue(is_playing))
             {
-              spotify_playback.is_playing = 1;
+              spotify_context.is_playing = 1;
             }
             else
             {
-              spotify_playback.is_playing = 0;
+              spotify_context.is_playing = 0;
             }
           }
         }
@@ -352,20 +352,20 @@ static esp_err_t spotify_http_event_handler(esp_http_client_event_t *evt)
         cJSON* song_title = cJSON_GetObjectItem(item, "name");
         cJSON* song_id = cJSON_GetObjectItem(item, "id");
 
-        // NOTE(michalc): the size of spotify_playback.artist buffer is 64.
+        // NOTE(michalc): the size of spotify_context.artist buffer is 64.
         if (cJSON_GetStringValue(artist_name))
         {
-          strncpy(spotify_playback.artist, cJSON_GetStringValue(artist_name), MAX_ARTIST_NAME_LENGTH);
+          strncpy(spotify_context.artist, cJSON_GetStringValue(artist_name), MAX_ARTIST_NAME_LENGTH);
         }
 
         if (cJSON_GetStringValue(song_title))
         {
-          strncpy(spotify_playback.song_title, cJSON_GetStringValue(song_title), MAX_SONG_TITLE_LENGTH);
+          strncpy(spotify_context.song_title, cJSON_GetStringValue(song_title), MAX_SONG_TITLE_LENGTH);
         }
 
         if (cJSON_GetStringValue(song_id))
         {
-          strncpy(spotify_playback.song_id, cJSON_GetStringValue(song_id), MAX_SONG_ID_LENGTH);
+          strncpy(spotify_context.song_id, cJSON_GetStringValue(song_id), MAX_SONG_ID_LENGTH);
         }
 
         cJSON_Delete(response_json);
