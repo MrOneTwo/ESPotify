@@ -19,10 +19,14 @@ spotify_context_t spotify_context;
 static esp_err_t spotify_http_event_handler(esp_http_client_event_t *evt);
 
 // Memory used by this component. Trying to avoid sprinkling the code with mallocs and frees.
-#define RESPONSE_BUF_SIZE   (1024 * 5)
-#define SCRATCH_MEM_SIZE    (1024)
+#define RESPONSE_BUF_SIZE     (1024 * 5)
+#define SCRATCH_MEM_SIZE      (1024)
+#define MAX_SONGS_IN_QUEUE        (5)
+#define SONGS_QUEUE_MEM_SIZE  (MAX_SONG_ID_LENGTH * MAX_SONGS_IN_QUEUE)
 static char* response_buf = NULL;
 static char* scratch_mem = NULL;
+static char* songs_queue = NULL;
+static uint32_t songs_queue_write_counter = 0;
 
 
 void spotify_init(void)
@@ -43,6 +47,7 @@ void spotify_init(void)
   // We are assuming the init function is called only once. Otherwise we have a memory leak.
   response_buf = (char*)malloc(RESPONSE_BUF_SIZE);
   scratch_mem = (char*)malloc(SCRATCH_MEM_SIZE);
+  songs_queue = (char*)malloc(SONGS_QUEUE_MEM_SIZE);
 }
 
 uint8_t spotify_is_fresh_access_token(void)
@@ -308,14 +313,20 @@ static esp_err_t spotify_http_event_handler(esp_http_client_event_t *evt)
           // when reading a song from a playlist but since the repsponse isn't the same this crashes.
           if (strstr(cJSON_GetStringValue(href), "playlists"))
           {
+            cJSON* item = cJSON_GetArrayItem(cJSON_GetObjectItem(response_json, "items"), 0);
             // This is where the 'get song from playlist' response goes.
             if (strstr(cJSON_GetStringValue(href), "tracks"))
             {
+              cJSON* track = cJSON_GetObjectItem(item, "track");
+              ESP_LOGI(TAG, "Storing a track ID %s in slot %d",
+                            cJSON_GetStringValue(cJSON_GetObjectItem(track, "id")),
+                            (songs_queue_write_counter % MAX_SONGS_IN_QUEUE));
+              char* const write_to = songs_queue + (songs_queue_write_counter++ % MAX_SONGS_IN_QUEUE) * MAX_SONG_ID_LENGTH;
+              memcpy(write_to, cJSON_GetStringValue(cJSON_GetObjectItem(track, "id")), MAX_SONG_ID_LENGTH);
             }
             // This is where the 'get playlist by index' response goes.
             else
             {
-              cJSON* item = cJSON_GetArrayItem(cJSON_GetObjectItem(response_json, "items"), 0);
               ESP_LOGI(TAG, "Got a response for the playlist %s ID %s",
                             cJSON_GetStringValue(cJSON_GetObjectItem(item, "name")),
                             cJSON_GetStringValue(cJSON_GetObjectItem(item, "id")));

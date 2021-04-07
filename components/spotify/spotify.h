@@ -9,7 +9,7 @@
 #include <stdint.h>
 
 #define MAX_SONG_TITLE_LENGTH       (64U)
-#define MAX_SONG_ID_LENGTH          (32U)
+#define MAX_SONG_ID_LENGTH          (22U)
 #define MAX_PLAYLIST_ID_LENGTH      (22U)
 #define MAX_ARTIST_NAME_LENGTH      (64U)
 
