@@ -310,6 +310,7 @@ void app_main(void)
   esp_log_level_set("wifi", ESP_LOG_WARN);
   esp_log_level_set("dhcpc", ESP_LOG_INFO);
   esp_log_level_set("spotify", ESP_LOG_INFO);
+  esp_log_level_set("rc522", ESP_LOG_INFO);
 
   //Initialize NonVolatile Storage.
   esp_err_t ret = nvs_flash_init();

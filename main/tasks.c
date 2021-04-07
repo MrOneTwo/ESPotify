@@ -30,7 +30,7 @@ esp_err_t scanning_timer_pause();
 
 static void task_rfid_scanning(void* arg)
 {
-  bool picc_present = rfid_test_picc_presence();
+  const bool picc_present = rfid_test_picc_presence();
 
   if (picc_present)
   {
@@ -168,8 +168,7 @@ void task_spotify(void* pvParameters)
   {
     char msg[32] = {};
     // Block forever waiting for a message.
-    BaseType_t status;
-    status = xQueueReceive(q_rfid_to_spotify, msg, portMAX_DELAY);
+    const BaseType_t status = xQueueReceive(q_rfid_to_spotify, msg, portMAX_DELAY);
     ESP_LOGI("tasks", "task_spotify got msg %.32s", msg);
 
     scanning_timer_pause();

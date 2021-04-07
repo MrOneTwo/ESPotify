@@ -6,12 +6,14 @@
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "esp_log.h"
 #include "esp_system.h"
 #include "esp_timer.h"
 #include "driver/spi_master.h"
 #include "driver/gpio.h"
 #include "soc/gpio_struct.h"
 
+static char* TAG = "rc522";
 
 static spi_device_handle_t rc522_spi;
 static esp_timer_handle_t rc522_timer;
@@ -101,7 +103,7 @@ rc522_say_hello()
 
   rc522_antenna_on();
 
-  printf("RC522 firmware 0x%x\n", rc522_fw_version());
+  ESP_LOGW(TAG, "RC522 firmware 0x%x", rc522_fw_version());
 
   return ret;
 }
@@ -358,7 +360,7 @@ status_e rc522_picc_reqa_or_wupa(uint8_t reqa_or_wupa)
   if(resp.size_bytes == 2 && resp.size_bits == 16)
   {
     // A PICC has responded to REQA with ATQA.
-    // printf("ATQA: %02x %02x\n", resp.data[0], resp.data[1]);
+    // ESP_LOGD(TAG, "ATQA: %02x %02x\n", resp.data[0], resp.data[1]);
 
     // TODO(michalc): According to this document https://www.nxp.com/docs/en/application-note/AN10833.pdf
     // page 10, ATQA should never be used to identify the PICC. SAK should be used for that.
@@ -434,6 +436,8 @@ rc522_anti_collision(uint8_t cascade_level)
 {
   assert(cascade_level > 0);
   assert(cascade_level <= 3);
+
+  ESP_LOGD(TAG, "Anticollision with cascade level %d\n", cascade_level);
 
   response_t resp = {};
 
@@ -610,7 +614,7 @@ status_e rc522_read_picc_data(uint8_t block_address, uint8_t buffer[16])
     {
       if (resp.data[0] != PICC_RESPONSE_ACK)
       {
-        printf("PICC responded with NAK (%x) when trying to read data!\n", resp.data[0]);
+        ESP_LOGD(TAG, "PICC responded with NAK (%x) when trying to read data!\n", resp.data[0]);
         return FAILURE;
       }
     }
@@ -624,7 +628,7 @@ status_e rc522_read_picc_data(uint8_t block_address, uint8_t buffer[16])
   }
   else
   {
-    printf("No data returned when reading PICC.\n");
+    ESP_LOGW(TAG, "No data returned when reading PICC.\n");
     return FAILURE;
   }
 
@@ -660,12 +664,12 @@ void rc522_write_picc_data(const uint8_t block_address, uint8_t* data, const uin
         {
           if (resp.data[0] != PICC_RESPONSE_ACK)
           {
-            printf("PICC responded with NAK (%x) when trying to write data!\n", resp.data[0]);
+            ESP_LOGW(TAG, "PICC responded with NAK (%x) when trying to write data!\n", resp.data[0]);
             return;
           }
           else
           {
-            printf("PICC responded with ACK (%x) when trying to write data!\n", resp.data[0]);
+            ESP_LOGD(TAG, "PICC responded with ACK (%x) when trying to write data!\n", resp.data[0]);
           }
         }
       }
@@ -696,12 +700,12 @@ void rc522_write_picc_data(const uint8_t block_address, uint8_t* data, const uin
         {
           if (resp.data[0] != PICC_RESPONSE_ACK)
           {
-            printf("PICC responded with NAK (%x) when trying to write data!\n", resp.data[0]);
+            ESP_LOGW(TAG, "PICC responded with NAK (%x) when trying to write data!\n", resp.data[0]);
             return;
           }
           else
           {
-            printf("PICC responded with ACK (%x) when trying to write data!\n", resp.data[0]);
+            ESP_LOGD(TAG, "PICC responded with ACK (%x) when trying to write data!\n", resp.data[0]);
           }
         }
       }
@@ -717,12 +721,12 @@ void rc522_write_picc_data(const uint8_t block_address, uint8_t* data, const uin
         {
           if (resp.data[0] != PICC_RESPONSE_ACK)
           {
-            printf("PICC responded with NAK (%x) when trying to write data!\n", resp.data[0]);
+            ESP_LOGW(TAG, "PICC responded with NAK (%x) when trying to write data!\n", resp.data[0]);
             return;
           }
           else
           {
-            printf("PICC responded with ACK (%x) when trying to write data!\n", resp.data[0]);
+            ESP_LOGD(TAG, "PICC responded with ACK (%x) when trying to write data!\n", resp.data[0]);
           }
         }
       }
@@ -730,7 +734,7 @@ void rc522_write_picc_data(const uint8_t block_address, uint8_t* data, const uin
   }
   else
   {
-    printf("Unsupported PICC for write operation!\n");
+    ESP_LOGW(TAG, "Unsupported PICC for write operation!\n");
   }
 
   return;
