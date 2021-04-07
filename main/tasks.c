@@ -19,6 +19,7 @@
 static esp_timer_handle_t s_rfid_reader_timer;
 TaskHandle_t x_task_rfid_read_or_write = NULL;
 TaskHandle_t x_spotify = NULL;
+TaskHandle_t x_spotify_read_playlist = NULL;
 QueueHandle_t q_rfid_to_spotify = NULL;
 
 bool scanning_timer_running = false;
@@ -206,8 +207,35 @@ void task_spotify(void* pvParameters)
   }
 }
 
+void task_spotify_read_playlist(void* pvParameters)
+{
+  while (1)
+  {
+    vTaskSuspend(x_spotify_read_playlist);
+    scanning_timer_pause();
+
+    while (!spotify_is_fresh_access_token())
+    {
+      ESP_LOGW("tasks", "Refreshing the access token");
+      spotify_refresh_access_token();
+      vTaskDelay(200);
+    }
+
+    for (uint8_t i = 0; i < 8; i++)
+    {
+      spotify_get_playlist_song("0CbSXG7Kx0PZKgnu3A3ED2", i);
+    }
+
+    scanning_timer_resume();
+  }
+}
+
 void tasks_init(void)
 {
+  const uint8_t queue_length = 4U;
+  const uint8_t queue_element_size = 32U;
+  q_rfid_to_spotify = xQueueCreate(queue_length, queue_element_size);
+
   BaseType_t xReturned;
 
   xReturned = xTaskCreate(&task_rfid_read_or_write,     // Function that implements the task.
@@ -234,10 +262,17 @@ void tasks_init(void)
     // success
   }
 
-  const uint8_t queue_length = 4U;
-  const uint8_t queue_element_size = 32U;
-  q_rfid_to_spotify = xQueueCreate(queue_length, queue_element_size);
+  xReturned = xTaskCreate(&task_spotify_read_playlist,
+                          "task_spotify_read_playlist",
+                          16 * 1024 / 4,                 // Stack size in words, not bytes.
+                          (void*) 1,                    // Parameter passed into the task.
+                          5,                            // Priority at which the task is created.
+                          &x_spotify_read_playlist);    // Used to pass out the created task's handle.
 
+  if(xReturned == pdPASS)
+  {
+    // success
+  }
 }
 
 esp_err_t scanning_timer_resume()
