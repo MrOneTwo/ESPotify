@@ -32,13 +32,16 @@ static uint32_t songs_queue_write_counter = 0;
 void spotify_init(void)
 {
   spotify.fresh = false;
-  // This is used instead of `inited` field. It's used when the code in tasks.c write using the
-  // current spotify_context.song_id. I don't want it to write crap into PICC.
-  spotify_context.is_playing = 0xFF;
   memset(spotify.client_id, 0, sizeof(spotify.client_id));
   memset(spotify.client_secret, 0, sizeof(spotify.client_secret));
   memset(spotify.refresh_token, 0, sizeof(spotify.refresh_token));
   memset(spotify.access_token, 0, sizeof(spotify.access_token));
+
+  // Context init.
+  memset(&spotify_context, 0, sizeof(spotify_context_t));
+  // This is used instead of `inited` field. It's used when the code in tasks.c write using the
+  // current spotify_context.song_id. I don't want it to write crap into PICC.
+  spotify_context.is_playing = 0xFF;
 
   snprintf(spotify.client_id, sizeof(spotify.client_id), "%s", CONFIG_SPOTIFY_CLIENT_ID);
   snprintf(spotify.client_secret, sizeof(spotify.client_secret), "%s", CONFIG_SPOTIFY_CLIENT_SECRET);

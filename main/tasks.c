@@ -213,6 +213,12 @@ void task_spotify_read_playlist(void* pvParameters)
   while (1)
   {
     vTaskSuspend(x_spotify_read_playlist);
+    if (spotify_context.playlist_id[0] == 0)
+    {
+      ESP_LOGW("tasks", "Requested to read playlist contents but don't know the playlist's ID");
+      continue;
+    }
+
     scanning_timer_pause();
 
     while (!spotify_is_fresh_access_token())
@@ -225,7 +231,7 @@ void task_spotify_read_playlist(void* pvParameters)
     // TODO(michalc): this is just a placeholder
     for (uint8_t i = 0; i < 8; i++)
     {
-      spotify_get_playlist_song("0CbSXG7Kx0PZKgnu3A3ED2", i);
+      spotify_get_playlist_song(spotify_context.playlist_id, i);
     }
 
     scanning_timer_resume();
