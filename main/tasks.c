@@ -20,6 +20,7 @@ static esp_timer_handle_t s_rfid_reader_timer;
 TaskHandle_t x_task_rfid_read_or_write = NULL;
 TaskHandle_t x_spotify = NULL;
 TaskHandle_t x_spotify_read_playlist = NULL;
+TaskHandle_t x_spotify_find_playlist = NULL;
 QueueHandle_t q_rfid_to_spotify = NULL;
 
 bool scanning_timer_running = false;
@@ -221,6 +222,7 @@ void task_spotify_read_playlist(void* pvParameters)
       vTaskDelay(200);
     }
 
+    // TODO(michalc): this is just a placeholder
     for (uint8_t i = 0; i < 8; i++)
     {
       spotify_get_playlist_song("0CbSXG7Kx0PZKgnu3A3ED2", i);
@@ -229,6 +231,39 @@ void task_spotify_read_playlist(void* pvParameters)
     scanning_timer_resume();
   }
 }
+
+void task_spotify_find_playlist(void* pvParameters)
+{
+  const char* playlist_name = "Score";
+
+  while (1)
+  {
+    vTaskSuspend(x_spotify_find_playlist);
+    scanning_timer_pause();
+
+    while (!spotify_is_fresh_access_token())
+    {
+      ESP_LOGW("tasks", "Refreshing the access token");
+      spotify_refresh_access_token();
+      vTaskDelay(200);
+    }
+
+    // TODO(michalc): this is just a placeholder
+    for (uint8_t i = 0; i < 8; i++)
+    {
+      spotify_get_playlist(i);
+
+      if (0 == strncmp(spotify_context.playlist_name, playlist_name, MAX_PLAYLIST_ID_LENGTH))
+      {
+        ESP_LOGI("tasks", "Found a playlist: %s %s", spotify_context.playlist_name, spotify_context.playlist_id);
+        break;
+      }
+    }
+
+    scanning_timer_resume();
+  }
+}
+
 
 void tasks_init(void)
 {
@@ -268,6 +303,18 @@ void tasks_init(void)
                           (void*) 1,                    // Parameter passed into the task.
                           5,                            // Priority at which the task is created.
                           &x_spotify_read_playlist);    // Used to pass out the created task's handle.
+
+  if(xReturned == pdPASS)
+  {
+    // success
+  }
+
+  xReturned = xTaskCreate(&task_spotify_find_playlist,
+                          "task_spotify_find_playlist",
+                          16 * 1024 / 4,                 // Stack size in words, not bytes.
+                          (void*) 1,                    // Parameter passed into the task.
+                          5,                            // Priority at which the task is created.
+                          &x_spotify_find_playlist);    // Used to pass out the created task's handle.
 
   if(xReturned == pdPASS)
   {

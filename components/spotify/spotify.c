@@ -338,6 +338,9 @@ static esp_err_t spotify_http_event_handler(esp_http_client_event_t *evt)
               strncpy(spotify_context.playlist_id,
                       cJSON_GetStringValue(cJSON_GetObjectItem(item, "id")),
                       MAX_PLAYLIST_ID_LENGTH);
+              strncpy(spotify_context.playlist_name,
+                      cJSON_GetStringValue(cJSON_GetObjectItem(item, "name")),
+                      MAX_PLAYLIST_NAME_LENGTH);
             }
           }
         }

@@ -11,6 +11,7 @@
 #define MAX_SONG_TITLE_LENGTH       (64U)
 #define MAX_SONG_ID_LENGTH          (22U)
 #define MAX_PLAYLIST_ID_LENGTH      (22U)
+#define MAX_PLAYLIST_NAME_LENGTH    (16U)
 #define MAX_ARTIST_NAME_LENGTH      (64U)
 
 typedef struct spotify_access_t
@@ -29,6 +30,7 @@ typedef struct spotify_context_t
   char song_title[MAX_SONG_TITLE_LENGTH];
   char song_id[MAX_SONG_ID_LENGTH];
   char playlist_id[MAX_PLAYLIST_ID_LENGTH];
+  char playlist_name[MAX_PLAYLIST_ID_LENGTH];
 } spotify_context_t;
 
 // TODO(michalc): instead of making it extern and passing it every time it's probably better to
