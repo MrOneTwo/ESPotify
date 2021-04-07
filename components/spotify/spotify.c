@@ -6,7 +6,7 @@
 
 #include <string.h>
 
-static const char* TAG = "ESPotify";
+static const char* TAG = "spotify";
 
 // This struct is available through extern in spotify.h.
 spotify_access_t spotify;
@@ -78,10 +78,11 @@ void spotify_refresh_access_token(void)
 
   esp_err_t err = esp_http_client_perform(client);
 
-  if (err == ESP_OK) {
-   ESP_LOGI(TAG, "Status = %d, content_length = %d",
-            esp_http_client_get_status_code(client),
-            esp_http_client_get_content_length(client));
+  if (err == ESP_OK)
+  {
+    ESP_LOGD(TAG, "Status = %d, content_length = %d",
+             esp_http_client_get_status_code(client),
+             esp_http_client_get_content_length(client));
   }
 
   // Closing the connection.
@@ -106,9 +107,9 @@ void spotify_query(void)
 
   if (err == ESP_OK)
   {
-    ESP_LOGI(TAG, "Status = %d, content_length = %d",
-            esp_http_client_get_status_code(client),
-            esp_http_client_get_content_length(client));
+    ESP_LOGD(TAG, "Status = %d, content_length = %d",
+             esp_http_client_get_status_code(client),
+             esp_http_client_get_content_length(client));
   }
 
   // Closing the connection.
@@ -140,8 +141,9 @@ void spotify_enqueue_song(const char* const song_id)
 
   esp_err_t err = esp_http_client_perform(client);
 
-  if (err == ESP_OK) {
-    ESP_LOGW(TAG, "Status = %d, content_length = %d",
+  if (err == ESP_OK)
+  {
+    ESP_LOGD(TAG, "Status = %d, content_length = %d",
              esp_http_client_get_status_code(client),
              esp_http_client_get_content_length(client));
   }
@@ -167,8 +169,9 @@ void spotify_next_song(void)
 
   esp_err_t err = esp_http_client_perform(client);
 
-  if (err == ESP_OK) {
-    ESP_LOGW(TAG, "Status = %d, content_length = %d",
+  if (err == ESP_OK)
+  {
+    ESP_LOGD(TAG, "Status = %d, content_length = %d",
              esp_http_client_get_status_code(client),
              esp_http_client_get_content_length(client));
   }
@@ -201,8 +204,9 @@ void spotify_get_playlist(const uint32_t playlist_idx)
 
   esp_err_t err = esp_http_client_perform(client);
 
-  if (err == ESP_OK) {
-    ESP_LOGW(TAG, "Status = %d, content_length = %d",
+  if (err == ESP_OK)
+  {
+    ESP_LOGD(TAG, "Status = %d, content_length = %d",
              esp_http_client_get_status_code(client),
              esp_http_client_get_content_length(client));
   }
@@ -233,8 +237,9 @@ void spotify_get_playlist_song(const char* playlist_id, const uint32_t song_idx)
 
   esp_err_t err = esp_http_client_perform(client);
 
-  if (err == ESP_OK) {
-    ESP_LOGW(TAG, "Status = %d, content_length = %d",
+  if (err == ESP_OK)
+  {
+    ESP_LOGD(TAG, "Status = %d, content_length = %d",
              esp_http_client_get_status_code(client),
              esp_http_client_get_content_length(client));
   }
@@ -249,27 +254,27 @@ static esp_err_t spotify_http_event_handler(esp_http_client_event_t *evt)
 
   switch(evt->event_id) {
     case HTTP_EVENT_ERROR:
-      ESP_LOGI(TAG, "HTTP_EVENT_ERROR");
+      ESP_LOGD(TAG, "HTTP_EVENT_ERROR");
       break;
     case HTTP_EVENT_ON_CONNECTED:
-      ESP_LOGI(TAG, "HTTP_EVENT_ON_CONNECTED");
+      ESP_LOGD(TAG, "HTTP_EVENT_ON_CONNECTED");
       break;
     case HTTP_EVENT_HEADER_SENT:
-      ESP_LOGI(TAG, "HTTP_EVENT_HEADER_SENT");
+      ESP_LOGD(TAG, "HTTP_EVENT_HEADER_SENT");
       break;
     case HTTP_EVENT_ON_HEADER:
-      ESP_LOGI(TAG, "HTTP_EVENT_ON_HEADER");
-      printf("%.*s", evt->data_len, (char*)evt->data);
+      ESP_LOGD(TAG, "HTTP_EVENT_ON_HEADER");
+      ESP_LOGD(TAG, "%.*s", evt->data_len, (char*)evt->data);
       break;
     case HTTP_EVENT_ON_DATA:
-      ESP_LOGI(TAG, "HTTP_EVENT_ON_DATA, len=%d", evt->data_len);
+      ESP_LOGD(TAG, "HTTP_EVENT_ON_DATA, len=%d", evt->data_len);
       // Collect the data into a buffer.
       memcpy(&response_buf[response_bytes_count], evt->data, evt->data_len);
       response_bytes_count += evt->data_len;
 
       if (response_bytes_count >= RESPONSE_BUF_SIZE)
       {
-        ESP_LOGI(TAG, "Not enough space in the response_buf... that's a yikes!");
+        ESP_LOGE(TAG, "Not enough space in the response_buf... that's a yikes!");
       }
 
       // if (!esp_http_client_is_chunked_response(evt->client)) {
@@ -296,12 +301,12 @@ static esp_err_t spotify_http_event_handler(esp_http_client_event_t *evt)
             char* error_message_value = cJSON_GetStringValue(error_message);
             if (strcmp(error_message_value, "Only valid bearer authentication supported") == 0)
             {
-              ESP_LOGE(TAG, "The access token is incorrect!");
+              ESP_LOGW(TAG, "The access token is incorrect!");
               spotify.fresh = false;
             }
             if (strcmp(error_message_value, "The access token expired") == 0)
             {
-              ESP_LOGE(TAG, "The access token expired!");
+              ESP_LOGW(TAG, "The access token expired!");
               spotify.fresh = false;
             }
           }
@@ -365,7 +370,8 @@ static esp_err_t spotify_http_event_handler(esp_http_client_event_t *evt)
           }
         }
 
-        printf("\n%.*s\n", response_bytes_count, response_buf);
+        // Print the raw response data.
+        ESP_LOGD(TAG, "\n%.*s\n", response_bytes_count, response_buf);
         memset(response_buf, 0, RESPONSE_BUF_SIZE);
         response_bytes_count = 0;
 
@@ -394,10 +400,10 @@ static esp_err_t spotify_http_event_handler(esp_http_client_event_t *evt)
 
         cJSON_Delete(response_json);
       }
-      ESP_LOGI(TAG, "HTTP_EVENT_ON_FINISH");
+      ESP_LOGD(TAG, "HTTP_EVENT_ON_FINISH");
       break;
     case HTTP_EVENT_DISCONNECTED:
-      ESP_LOGI(TAG, "HTTP_EVENT_DISCONNECTED");
+      ESP_LOGD(TAG, "HTTP_EVENT_DISCONNECTED");
       break;
   }
   return ESP_OK;
