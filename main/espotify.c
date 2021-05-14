@@ -16,7 +16,6 @@
 #include "cJSON.h"
 
 #include "spotify.h"
-#include "shared.h"
 #include "rfid_reader.h"
 #include "periph.h"
 #include "tasks.h"
@@ -69,18 +68,18 @@ static void event_handler(void* arg, esp_event_base_t event_base,
     {
       esp_wifi_connect();
       s_retry_num++;
-      ESP_LOGI(TAG, "retry to connect to the AP");
+      ESP_LOGI("espotify", "retry to connect to the AP");
     }
     else
     {
       xEventGroupSetBits(s_wifi_event_group, WIFI_FAIL_BIT);
     }
-    ESP_LOGI(TAG, "Connect to the AP fail");
+    ESP_LOGI("espotify", "Connect to the AP fail");
   }
   else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP)
   {
     ip_event_got_ip_t* event = (ip_event_got_ip_t*) event_data;
-    ESP_LOGI(TAG, "Got ip:" IPSTR, IP2STR(&event->ip_info.ip));
+    ESP_LOGI("espotify", "Got ip:" IPSTR, IP2STR(&event->ip_info.ip));
     s_retry_num = 0;
     xEventGroupSetBits(s_wifi_event_group, WIFI_CONNECTED_BIT);
   }
@@ -97,27 +96,27 @@ static esp_err_t http_event_handler(esp_http_client_event_t *evt)
   switch(evt->event_id)
   {
     case HTTP_EVENT_ERROR:
-      ESP_LOGD(TAG, "HTTP_EVENT_ERROR");
+      ESP_LOGD("espotify", "HTTP_EVENT_ERROR");
       break;
     case HTTP_EVENT_ON_CONNECTED:
-      ESP_LOGD(TAG, "HTTP_EVENT_ON_CONNECTED");
+      ESP_LOGD("espotify", "HTTP_EVENT_ON_CONNECTED");
       break;
     case HTTP_EVENT_HEADER_SENT:
-      ESP_LOGD(TAG, "HTTP_EVENT_HEADER_SENT");
+      ESP_LOGD("espotify", "HTTP_EVENT_HEADER_SENT");
       break;
     case HTTP_EVENT_ON_HEADER:
-      ESP_LOGD(TAG, "HTTP_EVENT_ON_HEADER");
+      ESP_LOGD("espotify", "HTTP_EVENT_ON_HEADER");
       printf("%.*s", evt->data_len, (char*)evt->data);
       break;
     case HTTP_EVENT_ON_DATA:
-      ESP_LOGD(TAG, "HTTP_EVENT_ON_DATA, len=%d", evt->data_len);
+      ESP_LOGD("espotify", "HTTP_EVENT_ON_DATA, len=%d", evt->data_len);
       // Collect the data into a buffer.
       memcpy(&response_buf[response_buf_tail], evt->data, evt->data_len);
       response_buf_tail += evt->data_len;
 
       if (response_buf_tail >= RESPONSE_BUF_SIZE)
       {
-        ESP_LOGD(TAG, "Not enough space in the response_buf... that's a yikes!");
+        ESP_LOGD("espotify", "Not enough space in the response_buf... that's a yikes!");
       }
 
       // if (!esp_http_client_is_chunked_response(evt->client)) {
@@ -125,10 +124,10 @@ static esp_err_t http_event_handler(esp_http_client_event_t *evt)
       // }
       break;
     case HTTP_EVENT_ON_FINISH:
-      ESP_LOGD(TAG, "HTTP_EVENT_ON_FINISH");
+      ESP_LOGD("espotify", "HTTP_EVENT_ON_FINISH");
       break;
     case HTTP_EVENT_DISCONNECTED:
-      ESP_LOGD(TAG, "HTTP_EVENT_DISCONNECTED");
+      ESP_LOGD("espotify", "HTTP_EVENT_DISCONNECTED");
       break;
   }
   return ESP_OK;
@@ -136,7 +135,7 @@ static esp_err_t http_event_handler(esp_http_client_event_t *evt)
 
 static esp_err_t get_handler(httpd_req_t *req)
 {
-  ESP_LOGI(TAG, "get_handler");
+  ESP_LOGI("espotify", "get_handler");
 
   char content[128];
   size_t recv_size = MIN(req->content_len, sizeof(content));
@@ -152,7 +151,7 @@ static esp_err_t get_handler(httpd_req_t *req)
 // Our URI handler function to be called during POST /uri request
 static esp_err_t post_handler(httpd_req_t *req)
 {
-  ESP_LOGI(TAG, "post_handler");
+  ESP_LOGI("espotify", "post_handler");
   // Destination buffer for content of HTTP POST request.
   // httpd_req_recv() accepts char* only, but content could
   // as well be any binary data (needs type casting).
@@ -271,7 +270,7 @@ static void wifi_init_sta(void)
   ESP_ERROR_CHECK(esp_wifi_set_config(ESP_IF_WIFI_STA, &wifi_config) );
   ESP_ERROR_CHECK(esp_wifi_start() );
 
-  ESP_LOGI(TAG, "wifi_init_sta finished.");
+  ESP_LOGI("espotify", "wifi_init_sta finished.");
 
   // Waiting until either the connection is established (WIFI_CONNECTED_BIT) or connection failed for the maxi
   // number of re-tries (WIFI_FAIL_BIT). The bits are set by event_handler() (see above).
@@ -285,17 +284,17 @@ static void wifi_init_sta(void)
   // happened.
   if (bits & WIFI_CONNECTED_BIT)
   {
-    ESP_LOGI(TAG, "Connected to ap SSID:%s password:%s",
+    ESP_LOGI("espotify", "Connected to ap SSID:%s password:%s",
              EXAMPLE_ESP_WIFI_SSID, EXAMPLE_ESP_WIFI_PASS);
   }
   else if (bits & WIFI_FAIL_BIT)
   {
-    ESP_LOGI(TAG, "Failed to connect to SSID:%s, password:%s",
+    ESP_LOGI("espotify", "Failed to connect to SSID:%s, password:%s",
              EXAMPLE_ESP_WIFI_SSID, EXAMPLE_ESP_WIFI_PASS);
   }
   else
   {
-    ESP_LOGE(TAG, "UNEXPECTED EVENT");
+    ESP_LOGE("espotify", "UNEXPECTED EVENT");
   }
 
   // The event will not be processed after unregister
@@ -326,12 +325,12 @@ void app_main(void)
   rfid_implement();
   if (rfid_init(spi) != ESP_OK)
   {
-    ESP_LOGE(TAG, "Failed to init RFID reader!");
+    ESP_LOGE("espotify", "Failed to init RFID reader!");
   }
 
   if (!rfid_say_hello())
   {
-    ESP_LOGE(TAG, "Failed to greet RFID reader!");
+    ESP_LOGE("espotify", "Failed to greet RFID reader!");
   }
 
 
@@ -348,6 +347,8 @@ void app_main(void)
   while (1)
   {
     // spotify_query();
+    // spotify_get_playlist(4);
+    // spotify_get_playlist_song(spotify_context.playlist_id, 3);
     vTaskDelay(1000);
 
     // // NOTE(michalc): the ESP_LOGI below flushes the output I think. That's why those prinfs fails
@@ -360,10 +361,10 @@ void app_main(void)
 
   if (start_webserver() == NULL)
   {
-    ESP_LOGE(TAG, "Failed to start the webserver!");
+    ESP_LOGE("espotify", "Failed to start the webserver!");
   }
   else
   {
-    ESP_LOGI(TAG, "Started the webserver!");
+    ESP_LOGI("espotify", "Started the webserver!");
   }
 }

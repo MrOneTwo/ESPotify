@@ -119,16 +119,16 @@ void spotify_query(void)
   esp_http_client_cleanup(client);
 }
 
-void spotify_enqueue_song(const char* const song_id)
+void spotify_enqueue_song(const char* const song_id, const uint8_t song_id_len)
 {
   const char* const _url = "https://api.spotify.com/v1/me/player/queue?uri=spotify:track:";
   // The idea below is to use the scratch buffer for building the URL and the header.
   char* const spotify_url = scratch_mem;
   memcpy(spotify_url, _url, strlen(_url));
-  memcpy(spotify_url + strlen(_url), song_id, strlen(song_id));
-  *(spotify_url + strlen(_url) + strlen(song_id)) = 0;
+  memcpy(spotify_url + strlen(_url), song_id, song_id_len);
+  *(spotify_url + strlen(_url) + song_id_len) = 0;
 
-  char* const spotify_header = (scratch_mem + strlen(_url) + strlen(song_id) + 1);
+  char* const spotify_header = (scratch_mem + strlen(_url) + song_id_len + 1);
   memcpy(spotify_header, "Bearer ", 7);
   memcpy(spotify_header + 7, spotify.access_token, strlen(spotify.access_token));
   *(spotify_header + 7 + strlen(spotify.access_token)) = 0;

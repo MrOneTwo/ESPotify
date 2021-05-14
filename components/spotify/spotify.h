@@ -59,7 +59,7 @@ void spotify_query(void);
 /*
  * Push a song to the Spotify's queue.
  */
-void spotify_enqueue_song(const char* const song_id);
+void spotify_enqueue_song(const char* const song_id, const uint8_t song_id_len);
 
 /*
  * Make Spotify jump to the next song in the queue.
