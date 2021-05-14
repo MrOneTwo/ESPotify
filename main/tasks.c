@@ -30,11 +30,6 @@ uint8_t reading_or_writing = RFID_OP_READ;
 esp_err_t scanning_timer_resume();
 esp_err_t scanning_timer_pause();
 
-#define defer(start, end) for (    \
-  int (_i_ ## __LINE__) = (start, 0); \
-  !(_i_ ## __LINE__);                 \
-  ((_i_ ## __LINE__) += 1), end)
-
 
 // The read/write switch might be something else than pressing a button.
 static inline uint8_t read_or_write()
