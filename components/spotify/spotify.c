@@ -303,13 +303,14 @@ static esp_err_t spotify_http_event_handler(esp_http_client_event_t *evt)
         if (error_message != NULL)
         {
           char* error_message_value = cJSON_GetStringValue(error_message);
-          if (strcmp(error_message_value, "Only valid bearer authentication supported") == 0)
-          {
-            ESP_LOGW(TAG, "The access token is incorrect!");
-          }
-          else if (strcmp(error_message_value, "The access token expired") == 0)
+          // It's more common for the token to expired than to mess up the request.
+          if (strcmp(error_message_value, "The access token expired") == 0)
           {
             ESP_LOGW(TAG, "The access token expired!");
+          }
+          else if (strcmp(error_message_value, "Only valid bearer authentication supported") == 0)
+          {
+            ESP_LOGW(TAG, "The access token is incorrect!");
           }
           spotify.fresh = false;
         }
@@ -319,12 +320,11 @@ static esp_err_t spotify_http_event_handler(esp_http_client_event_t *evt)
 
       // The response contains the request that was sent under the href key.
       cJSON* href = cJSON_GetObjectItem(response_json, "href");
-      cJSON* access_token = cJSON_GetObjectItem(response_json, "access_token");
 
       if (href != NULL)
       {
-        // TODO(michalc): this is fugly. The second !strstr is here because otherwise we enter this
-        // when reading a song from a playlist but since the repsponse isn't the same this crashes.
+        // TODO(michalc): this is fugly. The second strstr is here because otherwise we enter this
+        // when reading a song from a playlist but since the response isn't the same this crashes.
         if (strstr(cJSON_GetStringValue(href), "playlists"))
         {
           cJSON* item = cJSON_GetArrayItem(cJSON_GetObjectItem(response_json, "items"), 0);
@@ -354,6 +354,8 @@ static esp_err_t spotify_http_event_handler(esp_http_client_event_t *evt)
         }
       }
 
+      cJSON* access_token = cJSON_GetObjectItem(response_json, "access_token");
+
       if (access_token != NULL)
       {
         char* access_token_value = cJSON_GetStringValue(access_token);
@@ -362,6 +364,8 @@ static esp_err_t spotify_http_event_handler(esp_http_client_event_t *evt)
           strncpy(spotify.access_token, access_token_value, strlen(access_token_value));
           spotify.fresh = true;
         }
+
+        goto bail;
       }
 
       cJSON* is_playing = NULL;
