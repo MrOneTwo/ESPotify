@@ -254,6 +254,7 @@ void spotify_get_playlist_song(const char* playlist_id, const uint32_t song_idx)
 static esp_err_t spotify_http_event_handler(esp_http_client_event_t *evt)
 {
   static uint32_t response_bytes_count = 0;
+  ESP_LOGD(TAG, "Handling response for client addr 0x%p", evt->client);
 
   switch(evt->event_id) {
     case HTTP_EVENT_ERROR:
@@ -271,7 +272,8 @@ static esp_err_t spotify_http_event_handler(esp_http_client_event_t *evt)
       break;
     case HTTP_EVENT_ON_DATA:
       ESP_LOGD(TAG, "HTTP_EVENT_ON_DATA, len=%d", evt->data_len);
-      // Collect the data into a buffer.
+      // Collect the data into a buffer. Remember that a response doesn't have to have
+      // data. It's HTTP so information can be stored in HEADERs.
       memcpy(&response_buf[response_bytes_count], evt->data, evt->data_len);
       response_bytes_count += evt->data_len;
 
@@ -281,132 +283,135 @@ static esp_err_t spotify_http_event_handler(esp_http_client_event_t *evt)
       }
 
       // if (!esp_http_client_is_chunked_response(evt->client)) {
-          // printf("%.*s", evt->data_len, (char*)evt->data);
+      //     printf("%.*s", evt->data_len, (char*)evt->data);
       // }
       break;
     case HTTP_EVENT_ON_FINISH:
-      // Check if there is data present in the response_buf.
-      if (response_bytes_count)
-      {
-        // cJSON_Parse mallocs memory! Remember to run cJSON_Delete.
-        cJSON* response_json = cJSON_Parse(response_buf);
-
-        // The reponse contains the request that was sent under the href key.
-        cJSON* href = cJSON_GetObjectItem(response_json, "href");
-        cJSON* access_token = cJSON_GetObjectItem(response_json, "access_token");
-        cJSON* error = cJSON_GetObjectItem(response_json, "error");
-
-        if (error != NULL)
-        {
-          cJSON* error_message = cJSON_GetObjectItem(response_json, "message");
-          if (error_message != NULL)
-          {
-            char* error_message_value = cJSON_GetStringValue(error_message);
-            if (strcmp(error_message_value, "Only valid bearer authentication supported") == 0)
-            {
-              ESP_LOGW(TAG, "The access token is incorrect!");
-              spotify.fresh = false;
-            }
-            if (strcmp(error_message_value, "The access token expired") == 0)
-            {
-              ESP_LOGW(TAG, "The access token expired!");
-              spotify.fresh = false;
-            }
-          }
-        }
-
-        if (href != NULL)
-        {
-          // TODO(michalc): this is fugly. The second !strstr is here because otherwise we enter this
-          // when reading a song from a playlist but since the repsponse isn't the same this crashes.
-          if (strstr(cJSON_GetStringValue(href), "playlists"))
-          {
-            cJSON* item = cJSON_GetArrayItem(cJSON_GetObjectItem(response_json, "items"), 0);
-            // This is where the 'get song from playlist' response goes.
-            if (strstr(cJSON_GetStringValue(href), "tracks"))
-            {
-              cJSON* track = cJSON_GetObjectItem(item, "track");
-              ESP_LOGI(TAG, "Storing a track ID %s in slot %d",
-                            cJSON_GetStringValue(cJSON_GetObjectItem(track, "id")),
-                            (songs_queue_write_counter % MAX_SONGS_IN_QUEUE));
-              char* const write_to = songs_queue + (songs_queue_write_counter++ % MAX_SONGS_IN_QUEUE) * MAX_SONG_ID_LENGTH;
-              memcpy(write_to, cJSON_GetStringValue(cJSON_GetObjectItem(track, "id")), MAX_SONG_ID_LENGTH);
-            }
-            // This is where the 'get playlist by index' response goes.
-            else
-            {
-              ESP_LOGI(TAG, "Got a response for the playlist %s ID %s",
-                            cJSON_GetStringValue(cJSON_GetObjectItem(item, "name")),
-                            cJSON_GetStringValue(cJSON_GetObjectItem(item, "id")));
-              strncpy(spotify_context.playlist_id,
-                      cJSON_GetStringValue(cJSON_GetObjectItem(item, "id")),
-                      MAX_PLAYLIST_ID_LENGTH);
-              strncpy(spotify_context.playlist_name,
-                      cJSON_GetStringValue(cJSON_GetObjectItem(item, "name")),
-                      MAX_PLAYLIST_NAME_LENGTH);
-            }
-          }
-        }
-
-        if (access_token != NULL)
-        {
-          char* access_token_value = cJSON_GetStringValue(access_token);
-          if (access_token_value)
-          {
-            strncpy(spotify.access_token, access_token_value, strlen(access_token_value));
-            spotify.fresh = true;
-          }
-        }
-
-        cJSON* is_playing = NULL;
-
-        is_playing = cJSON_GetObjectItem(response_json, "is_playing");
-        if (is_playing)
-        {
-          if (cJSON_IsBool(is_playing))
-          {
-            if (cJSON_IsTrue(is_playing))
-            {
-              spotify_context.is_playing = 1;
-            }
-            else
-            {
-              spotify_context.is_playing = 0;
-            }
-          }
-        }
-
-        // Print the raw response data.
-        ESP_LOGD(TAG, "\n%.*s\n", response_bytes_count, response_buf);
-        memset(response_buf, 0, RESPONSE_BUF_SIZE);
-        response_bytes_count = 0;
-
-        cJSON* item = cJSON_GetObjectItem(response_json, "item");
-        cJSON* artists = cJSON_GetObjectItem(item, "artists");
-        artists = cJSON_GetArrayItem(artists, 0);
-        cJSON* artist_name = cJSON_GetObjectItem(artists, "name");
-        cJSON* song_title = cJSON_GetObjectItem(item, "name");
-        cJSON* song_id = cJSON_GetObjectItem(item, "id");
-
-        // NOTE(michalc): the size of spotify_context.artist buffer is 64.
-        if (cJSON_GetStringValue(artist_name))
-        {
-          strncpy(spotify_context.artist, cJSON_GetStringValue(artist_name), MAX_ARTIST_NAME_LENGTH);
-        }
-
-        if (cJSON_GetStringValue(song_title))
-        {
-          strncpy(spotify_context.song_title, cJSON_GetStringValue(song_title), MAX_SONG_TITLE_LENGTH);
-        }
-
-        if (cJSON_GetStringValue(song_id))
-        {
-          strncpy(spotify_context.song_id, cJSON_GetStringValue(song_id), MAX_SONG_ID_LENGTH);
-        }
-
-        cJSON_Delete(response_json);
-      }
       ESP_LOGD(TAG, "HTTP_EVENT_ON_FINISH");
+
+      cJSON* response_json = NULL;
+
+      // cJSON_Parse mallocs memory! Remember to run cJSON_Delete.
+      response_json = cJSON_Parse(response_buf);
+
+      // First check for a possible failure.
+      cJSON* error = cJSON_GetObjectItem(response_json, "error");
+
+      if (error != NULL)
+      {
+        cJSON* error_message = cJSON_GetObjectItem(response_json, "message");
+        if (error_message != NULL)
+        {
+          char* error_message_value = cJSON_GetStringValue(error_message);
+          if (strcmp(error_message_value, "Only valid bearer authentication supported") == 0)
+          {
+            ESP_LOGW(TAG, "The access token is incorrect!");
+          }
+          else if (strcmp(error_message_value, "The access token expired") == 0)
+          {
+            ESP_LOGW(TAG, "The access token expired!");
+          }
+          spotify.fresh = false;
+        }
+
+        goto bail;
+      }
+
+      // The response contains the request that was sent under the href key.
+      cJSON* href = cJSON_GetObjectItem(response_json, "href");
+      cJSON* access_token = cJSON_GetObjectItem(response_json, "access_token");
+
+      if (href != NULL)
+      {
+        // TODO(michalc): this is fugly. The second !strstr is here because otherwise we enter this
+        // when reading a song from a playlist but since the repsponse isn't the same this crashes.
+        if (strstr(cJSON_GetStringValue(href), "playlists"))
+        {
+          cJSON* item = cJSON_GetArrayItem(cJSON_GetObjectItem(response_json, "items"), 0);
+          // This is where the 'get song from playlist' response goes.
+          if (strstr(cJSON_GetStringValue(href), "tracks"))
+          {
+            cJSON* track = cJSON_GetObjectItem(item, "track");
+            ESP_LOGI(TAG, "Storing a track ID %s in slot %d",
+                          cJSON_GetStringValue(cJSON_GetObjectItem(track, "id")),
+                          (songs_queue_write_counter % MAX_SONGS_IN_QUEUE));
+            char* const write_to = songs_queue + (songs_queue_write_counter++ % MAX_SONGS_IN_QUEUE) * MAX_SONG_ID_LENGTH;
+            memcpy(write_to, cJSON_GetStringValue(cJSON_GetObjectItem(track, "id")), MAX_SONG_ID_LENGTH);
+          }
+          // This is where the 'get playlist by index' response goes.
+          else
+          {
+            ESP_LOGI(TAG, "Got a response for the playlist %s ID %s",
+                          cJSON_GetStringValue(cJSON_GetObjectItem(item, "name")),
+                          cJSON_GetStringValue(cJSON_GetObjectItem(item, "id")));
+            strncpy(spotify_context.playlist_id,
+                    cJSON_GetStringValue(cJSON_GetObjectItem(item, "id")),
+                    MAX_PLAYLIST_ID_LENGTH);
+            strncpy(spotify_context.playlist_name,
+                    cJSON_GetStringValue(cJSON_GetObjectItem(item, "name")),
+                    MAX_PLAYLIST_NAME_LENGTH);
+          }
+        }
+      }
+
+      if (access_token != NULL)
+      {
+        char* access_token_value = cJSON_GetStringValue(access_token);
+        if (access_token_value)
+        {
+          strncpy(spotify.access_token, access_token_value, strlen(access_token_value));
+          spotify.fresh = true;
+        }
+      }
+
+      cJSON* is_playing = NULL;
+
+      is_playing = cJSON_GetObjectItem(response_json, "is_playing");
+      if (is_playing)
+      {
+        if (cJSON_IsBool(is_playing))
+        {
+          if (cJSON_IsTrue(is_playing))
+          {
+            spotify_context.is_playing = 1;
+          }
+          else
+          {
+            spotify_context.is_playing = 0;
+          }
+        }
+      }
+
+      // Print the raw response data.
+      ESP_LOGD(TAG, "\n%.*s\n", response_bytes_count, response_buf);
+      memset(response_buf, 0, RESPONSE_BUF_SIZE);
+      response_bytes_count = 0;
+
+      cJSON* item = cJSON_GetObjectItem(response_json, "item");
+      cJSON* artists = cJSON_GetObjectItem(item, "artists");
+      artists = cJSON_GetArrayItem(artists, 0);
+      cJSON* artist_name = cJSON_GetObjectItem(artists, "name");
+      cJSON* song_title = cJSON_GetObjectItem(item, "name");
+      cJSON* song_id = cJSON_GetObjectItem(item, "id");
+
+      // NOTE(michalc): the size of spotify_context.artist buffer is 64.
+      if (cJSON_GetStringValue(artist_name))
+      {
+        strncpy(spotify_context.artist, cJSON_GetStringValue(artist_name), MAX_ARTIST_NAME_LENGTH);
+      }
+
+      if (cJSON_GetStringValue(song_title))
+      {
+        strncpy(spotify_context.song_title, cJSON_GetStringValue(song_title), MAX_SONG_TITLE_LENGTH);
+      }
+
+      if (cJSON_GetStringValue(song_id))
+      {
+        strncpy(spotify_context.song_id, cJSON_GetStringValue(song_id), MAX_SONG_ID_LENGTH);
+      }
+
+bail:
+      if(response_json) cJSON_Delete(response_json);
       break;
     case HTTP_EVENT_DISCONNECTED:
       ESP_LOGD(TAG, "HTTP_EVENT_DISCONNECTED");
