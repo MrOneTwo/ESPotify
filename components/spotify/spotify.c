@@ -39,7 +39,7 @@ void spotify_init(void)
 
   // Context init.
   memset(&spotify_context, 0, sizeof(spotify_context_t));
-  // This is used instead of `inited` field. It's used when the code in tasks.c write using the
+  // This is used instead of `inited` field. It's used when the code in tasks.c writes using the
   // current spotify_context.song_id. I don't want it to write crap into PICC.
   spotify_context.is_playing = 0xFF;
 
@@ -144,6 +144,7 @@ void spotify_enqueue_song(const char* const song_id, const uint8_t song_id_len)
   esp_http_client_set_header(client, "Authorization", spotify_header);
   esp_http_client_set_method(client, HTTP_METHOD_POST);
 
+  // NOTE(michalc): _connect part of the _open can be made asynchronous.
   // Open connection and write header strings.
   if (esp_http_client_open(client, 0) == ESP_FAIL)
   {
