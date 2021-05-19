@@ -138,14 +138,23 @@ void spotify_enqueue_song(const char* const song_id, const uint8_t song_id_len)
     .url = spotify_url,
     .transport_type = HTTP_TRANSPORT_OVER_SSL,
     .event_handler = spotify_http_event_handler,
+    .is_async = false,
   };
   esp_http_client_handle_t client = esp_http_client_init(&config);
   esp_http_client_set_header(client, "Authorization", spotify_header);
   esp_http_client_set_method(client, HTTP_METHOD_POST);
 
-  esp_err_t err = esp_http_client_perform(client);
+  // Open connection and write header strings.
+  if (esp_http_client_open(client, 0) == ESP_FAIL)
+  {
+    ESP_LOGW(TAG, "Failed to open connection!");
+  }
 
-  if (err == ESP_OK)
+  if (esp_http_client_fetch_headers(client) == ESP_FAIL)
+  {
+    ESP_LOGW(TAG, "Failed to fetch headers!");
+  }
+  else
   {
     ESP_LOGD(TAG, "Status = %d, content_length = %d",
              esp_http_client_get_status_code(client),
