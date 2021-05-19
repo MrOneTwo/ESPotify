@@ -269,7 +269,7 @@ static esp_err_t spotify_http_event_handler(esp_http_client_event_t *evt)
       break;
     case HTTP_EVENT_ON_HEADER:
       ESP_LOGD(TAG, "HTTP_EVENT_ON_HEADER");
-      ESP_LOGD(TAG, "%.*s", evt->data_len, (char*)evt->data);
+      ESP_LOGD(TAG, "%s : %s", evt->header_key, evt->header_value);
       break;
     case HTTP_EVENT_ON_DATA:
       ESP_LOGD(TAG, "HTTP_EVENT_ON_DATA, len=%d", evt->data_len);
