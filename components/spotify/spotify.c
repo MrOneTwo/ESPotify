@@ -19,7 +19,7 @@ spotify_context_t spotify_context;
 static esp_err_t spotify_http_event_handler(esp_http_client_event_t *evt);
 
 // Memory used by this component. Trying to avoid sprinkling the code with mallocs and frees.
-#define RESPONSE_BUF_SIZE     (1024 * 5)
+#define RESPONSE_BUF_SIZE     (1024 * 8)
 #define SCRATCH_MEM_SIZE      (1024)
 #define MAX_SONGS_IN_QUEUE        (5)
 #define SONGS_QUEUE_MEM_SIZE  (MAX_SONG_ID_LENGTH * MAX_SONGS_IN_QUEUE)
@@ -282,7 +282,7 @@ static esp_err_t spotify_http_event_handler(esp_http_client_event_t *evt)
       ESP_LOGD(TAG, "%s : %s", evt->header_key, evt->header_value);
       break;
     case HTTP_EVENT_ON_DATA:
-      ESP_LOGD(TAG, "HTTP_EVENT_ON_DATA, len=%d", evt->data_len);
+      ESP_LOGD(TAG, "HTTP_EVENT_ON_DATA, chunk size %d", evt->data_len);
       // Collect the data into a buffer. Remember that a response doesn't have to have
       // data. It's HTTP so information can be stored in HEADERs.
       memcpy(&response_buf[response_bytes_count], evt->data, evt->data_len);
@@ -291,6 +291,8 @@ static esp_err_t spotify_http_event_handler(esp_http_client_event_t *evt)
       if (response_bytes_count >= RESPONSE_BUF_SIZE)
       {
         ESP_LOGE(TAG, "Not enough space in the response_buf... that's a yikes!");
+        memset(response_buf, 0, RESPONSE_BUF_SIZE);
+        response_bytes_count = 0;
       }
 
       // if (!esp_http_client_is_chunked_response(evt->client)) {
@@ -298,12 +300,18 @@ static esp_err_t spotify_http_event_handler(esp_http_client_event_t *evt)
       // }
       break;
     case HTTP_EVENT_ON_FINISH:
-      ESP_LOGD(TAG, "HTTP_EVENT_ON_FINISH");
+      ESP_LOGD(TAG, "HTTP_EVENT_ON_FINISH, bytes to process %d", response_bytes_count);
 
       cJSON* response_json = NULL;
 
       // cJSON_Parse mallocs memory! Remember to run cJSON_Delete.
       response_json = cJSON_Parse(response_buf);
+
+      if (response_json == NULL)
+      {
+        ESP_LOGW(TAG, "cJSON_Parse failed to parse the response_buf");
+        goto bail;
+      }
 
       // First check for a possible failure.
       cJSON* error = cJSON_GetObjectItem(response_json, "error");
@@ -372,6 +380,7 @@ static esp_err_t spotify_http_event_handler(esp_http_client_event_t *evt)
         char* access_token_value = cJSON_GetStringValue(access_token);
         if (access_token_value)
         {
+          ESP_LOGI(TAG, "Storing a new access token");
           strncpy(spotify.access_token, access_token_value, strlen(access_token_value));
           spotify.fresh = true;
         }
@@ -399,8 +408,6 @@ static esp_err_t spotify_http_event_handler(esp_http_client_event_t *evt)
 
       // Print the raw response data.
       ESP_LOGD(TAG, "\n%.*s\n", response_bytes_count, response_buf);
-      memset(response_buf, 0, RESPONSE_BUF_SIZE);
-      response_bytes_count = 0;
 
       cJSON* item = cJSON_GetObjectItem(response_json, "item");
       cJSON* artists = cJSON_GetObjectItem(item, "artists");
@@ -427,6 +434,8 @@ static esp_err_t spotify_http_event_handler(esp_http_client_event_t *evt)
 
 bail:
       if(response_json) cJSON_Delete(response_json);
+      memset(response_buf, 0, RESPONSE_BUF_SIZE);
+      response_bytes_count = 0;
       break;
     case HTTP_EVENT_DISCONNECTED:
       ESP_LOGD(TAG, "HTTP_EVENT_DISCONNECTED");
