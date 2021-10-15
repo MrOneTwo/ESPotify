@@ -1,0 +1,17 @@
+# Michal Ciesielski 2021
+# Configuration file for RFID Reader module.
+
+menu "RFID Reader component"
+    choice RFID_READER
+        prompt "RFID reader driver"
+        default RC522
+        config RC522
+            bool "RC522 based reader"
+            help
+                Choose RFID reader type
+        config PN532
+            bool "PN532 based reader"
+            help
+                Choose RFID reader type
+    endchoice
+endmenu

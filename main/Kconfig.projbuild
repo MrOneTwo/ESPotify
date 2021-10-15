@@ -21,16 +21,4 @@ menu "ESPotify project configuration"
         help
             Set the Maximum retry to avoid station reconnecting to the AP unlimited when the AP is really inexistent.
 
-    choice RFID_READER
-        prompt "RFID reader driver"
-        default RC522
-        config RC522
-            bool "RC522 based reader"
-            help
-                Choose RFID reader type
-        config PN532
-            bool "PN532 based reader"
-            help
-                Choose RFID reader type
-    endchoice
 endmenu
