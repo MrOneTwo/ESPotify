@@ -73,6 +73,7 @@ periph_get_spi_handle(void)
   return _spi;
 }
 
+#ifdef CONFIG_RFID_READER
 void
 periph_init_spi()
 {
@@ -124,6 +125,7 @@ periph_init_spi()
   ret = spi_bus_add_device(VSPI_HOST, &devcfg, &_spi);
   ESP_ERROR_CHECK(ret);
 }
+#endif // CONFIG_RFID_READER
 
 static void
 periph_init_gpio(void(*gpio_cb)(void* arg), void* gpio_cb_arg)
@@ -151,5 +153,7 @@ periph_init_gpio(void(*gpio_cb)(void* arg), void* gpio_cb_arg)
 void periph_init()
 {
   periph_init_gpio(gpio_isr_callback, (void*)_GPIO_IRQ_PIN);
+#ifdef CONFIG_RFID_READER
   periph_init_spi();
+#endif // CONFIG_RFID_READER
 }

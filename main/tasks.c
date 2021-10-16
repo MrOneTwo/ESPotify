@@ -1,12 +1,16 @@
 #include "tasks.h"
-#include "rc522.h"  // TODO(michalc): remove this when fully ported to rfid_reader
-#include "rfid_reader.h"
 #include "spotify.h"
 #include "periph.h"
 #include "shared.h"
 
+#ifdef CONFIG_RFID_READER
+#include "rc522.h"  // TODO(michalc): remove this when fully ported to rfid_reader
+#include "rfid_reader.h"
+#endif // CONFIG_RFID_READER
+
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "freertos/queue.h"
 #include "esp_log.h"
 
 #include <string.h>
@@ -17,12 +21,14 @@
 #define RFID_OP_READ  0x0
 #define RFID_OP_WRITE 0x1
 
-static esp_timer_handle_t s_rfid_reader_timer;
-TaskHandle_t x_task_rfid_read_or_write = NULL;
 TaskHandle_t x_spotify = NULL;
 TaskHandle_t x_spotify_read_playlist = NULL;
 TaskHandle_t x_spotify_find_playlist = NULL;
 QueueHandle_t q_rfid_to_spotify = NULL;
+
+#ifdef CONFIG_RFID_READER
+static esp_timer_handle_t s_rfid_reader_timer;
+TaskHandle_t x_task_rfid_read_or_write = NULL;
 
 bool scanning_timer_running = false;
 uint8_t reading_or_writing = RFID_OP_READ;
@@ -46,6 +52,8 @@ static void task_rfid_scanning(void* arg)
   if (picc_present)
   {
     bool status = rfid_anti_collision(1);
+    (void)status;
+
     reading_or_writing = read_or_write() == 1 ? RFID_OP_WRITE : RFID_OP_READ;
 
     ESP_LOGI("tasks", "PICC detected.");
@@ -79,8 +87,10 @@ void task_rfid_read_or_write(void* pvParameters)
                           &reading_or_writing,
                           portMAX_DELAY);
 
+#ifdef CONFIG_RFID_READER
     defer(scanning_timer_pause(), scanning_timer_resume())
     {
+#endif // CONFIG_RFID_READER
       ESP_LOGI("tasks", "Reading or writing to PICC");
 
       // MIFARE's first sector is not fully available since the first block is taken.
@@ -160,7 +170,9 @@ void task_rfid_read_or_write(void* pvParameters)
       rc522_picc_halta(PICC_CMD_HALTA);
       // Clear the MFCrypto1On bit.
       rc522_clear_bitmask(RC522_REG_STATUS_2, 0x08);
+#ifdef CONFIG_RFID_READER
     }
+#endif // CONFIG_RFID_READER
 
     if (spotify_should_act)
     {
@@ -168,6 +180,7 @@ void task_rfid_read_or_write(void* pvParameters)
     }
   }
 }
+#endif // CONFIG_RFID_READER
 
 void task_spotify(void* pvParameters)
 {
@@ -180,8 +193,10 @@ void task_spotify(void* pvParameters)
     const BaseType_t status = xQueueReceive(q_rfid_to_spotify, msg, portMAX_DELAY);
     ESP_LOGI("tasks", "task_spotify got msg %.32s", msg);
 
+#ifdef CONFIG_RFID_READER
     defer(scanning_timer_pause(), scanning_timer_resume())
     {
+#endif // CONFIG_RFID_READER
       // TODO(michalc): This can lock
       // TODO(michalc): what if the token expires between here and enqueue song.
       while (!spotify_is_fresh_access_token())
@@ -212,7 +227,9 @@ void task_spotify(void* pvParameters)
       {
         // TODO(michalc): I don't expect we'll get here...
       }
+#ifdef CONFIG_RFID_READER
     }
+#endif // CONFIG_RFID_READER
   }
 }
 
@@ -227,8 +244,10 @@ void task_spotify_read_playlist(void* pvParameters)
       continue;
     }
 
+#ifdef CONFIG_RFID_READER
     defer(scanning_timer_pause(), scanning_timer_resume())
     {
+#endif // CONFIG_RFID_READER
       while (!spotify_is_fresh_access_token())
       {
         ESP_LOGW("tasks", "Refreshing the access token");
@@ -241,7 +260,9 @@ void task_spotify_read_playlist(void* pvParameters)
       {
         spotify_get_playlist_song(spotify_context.playlist_id, i);
       }
+#ifdef CONFIG_RFID_READER
     }
+#endif // CONFIG_RFID_READER
   }
 }
 
@@ -253,8 +274,10 @@ void task_spotify_find_playlist(void* pvParameters)
   {
     vTaskSuspend(x_spotify_find_playlist);
 
+#ifdef CONFIG_RFID_READER
     defer(scanning_timer_pause(), scanning_timer_resume())
     {
+#endif // CONFIG_RFID_READER
       while (!spotify_is_fresh_access_token())
       {
         ESP_LOGW("tasks", "Refreshing the access token");
@@ -273,7 +296,9 @@ void task_spotify_find_playlist(void* pvParameters)
           break;
         }
       }
+#ifdef CONFIG_RFID_READER
     }
+#endif // CONFIG_RFID_READER
   }
 }
 
@@ -286,6 +311,7 @@ void tasks_init(void)
 
   BaseType_t xReturned;
 
+#ifdef CONFIG_RFID_READER
   xReturned = xTaskCreate(&task_rfid_read_or_write,     // Function that implements the task.
                           "task_rfid_read_or_write",    // Text name for the task.
                           8 * 1024 / 4,                 // Stack size in words, not bytes.
@@ -297,6 +323,7 @@ void tasks_init(void)
   {
     // success
   }
+#endif // CONFIG_RFID_READER
 
   xReturned = xTaskCreate(&task_spotify,     // Function that implements the task.
                           "task_spotify",    // Text name for the task.
@@ -335,6 +362,7 @@ void tasks_init(void)
   }
 }
 
+#ifdef CONFIG_RFID_READER
 esp_err_t scanning_timer_resume()
 {
   // 125000 microseconds means 8Hz.
@@ -355,9 +383,11 @@ esp_err_t scanning_timer_pause()
   }
   return ESP_OK;
 }
+#endif // CONFIG_RFID_READER
 
 void tasks_start(void)
 {
+#ifdef CONFIG_RFID_READER
   // Start the scanning task.
   const esp_timer_create_args_t timer_args = {
     .callback = &task_rfid_scanning,
@@ -369,6 +399,7 @@ void tasks_start(void)
   esp_timer_create(&timer_args, &s_rfid_reader_timer);
 
   scanning_timer_resume();
+#endif // CONFIG_RFID_READER
   // vTaskResume(x_spotify_find_playlist);
   return;
 }

@@ -14,9 +14,11 @@
 #include "lwip/sys.h"
 
 #include "spotify.h"
-#include "rfid_reader.h"
 #include "periph.h"
 #include "tasks.h"
+#ifdef CONFIG_RFID_READER
+#include "rfid_reader.h"
+#endif // CONFIG_RFID_READER
 
 #define MIN(a, b) (a <= b ? a : b)
 
@@ -320,6 +322,7 @@ void app_main(void)
 
   periph_init();
   spi_device_handle_t spi = periph_get_spi_handle();
+#ifdef CONFIG_RFID_READER
   rfid_implement();
   if (rfid_init(spi) != ESP_OK)
   {
@@ -330,6 +333,7 @@ void app_main(void)
   {
     ESP_LOGE("espotify", "Failed to greet RFID reader!");
   }
+#endif // CONFIG_RFID_READER
 
 
   wifi_init_sta();
