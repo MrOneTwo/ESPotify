@@ -13,8 +13,6 @@
 #include "lwip/err.h"
 #include "lwip/sys.h"
 
-#include "cJSON.h"
-
 #include "spotify.h"
 #include "rfid_reader.h"
 #include "periph.h"

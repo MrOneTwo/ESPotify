@@ -4,4 +4,5 @@ idf_component_register(SRCS
                        "tasks.c"
                        "shared.c"
                        INCLUDE_DIRS "."
-                       REQUIRES esp_http_server nvs_flash spotify rfid_reader)
+                       REQUIRES esp_http_server esp_http_client nvs_flash rfid_reader spotify)
+
