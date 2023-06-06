@@ -1,5 +1,9 @@
+#include "freertos/FreeRTOS.h"
+#include "freertos/queue.h"
+#include "freertos/task.h"
 #include "driver/spi_master.h"
 #include "driver/gpio.h"
+#include "driver/uart.h"
 
 #include <stdbool.h>
 
@@ -27,8 +31,48 @@
 // const uint32_t _GPIO_IRQ_PIN = 15U;
 uint8_t _GPIO_IRQ_PIN[2] = {15U, 0U};
 
-
+#define BUF_SIZE 512
+static QueueHandle_t uart1_queue;
 spi_device_handle_t _spi;
+
+static void
+uart_event_task(void *pvParameters)
+{
+  uart_event_t event;
+  size_t buffered_size;
+  uint8_t data = (uint8_t*)malloc(BUF_SIZE);
+
+  while(true) {
+    if (xQueueReceive(uart1_queue, (void*)&event, (TickType_t)portMAX_DELAY)) {
+      bzero(data, BUF_SIZE);
+      switch(event.type) {
+        case UART_DATA:
+          uart_read_bytes(UART_NUM_1, data, event.size, portMAX_DELAY);
+          break;
+        case UART_FIFO_OVF:
+          uart_flush_input(UART_NUM_1);
+          xQueueReset(uart1_queue);
+          break;
+        case UART_BUFFER_FULL:
+          uart_flush_input(UART_NUM_1);
+          xQueueReset(uart1_queue);
+          break;
+        case UART_BREAK:
+          break;
+        case UART_PARITY_ERR:
+          break;
+        case UART_FRAME_ERR:
+          break;
+        case UART_PATTERN_DET: {
+          uart_get_buffered_data_len(UART_NUM_1, &buffered_size);
+          int pos = uart_pattern_pop_pos(UART_NUM_1);
+        } break;
+        default:
+          break;
+      }
+    }
+  }
+}
 
 static void
 spi_pretransfer_callback(spi_transaction_t *t)
@@ -75,7 +119,7 @@ periph_get_spi_handle(void)
 
 #ifdef CONFIG_RFID_READER
 void
-periph_init_spi()
+periph_init_spi(void)
 {
   esp_err_t ret;
 
@@ -126,6 +170,35 @@ periph_init_spi()
   ESP_ERROR_CHECK(ret);
 }
 #endif // CONFIG_RFID_READER
+
+void
+periph_init_uart(void)
+{
+    uart_config_t uart_config = {
+        .baud_rate = 115200,
+        .data_bits = UART_DATA_8_BITS,
+        .parity    = UART_PARITY_DISABLE,
+        .stop_bits = UART_STOP_BITS_1,
+        .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
+        .source_clk = UART_SCLK_DEFAULT,
+    };
+
+    uint8_t *data = (uint8_t *)malloc(1024);
+    int intr_alloc_flags = 0;
+
+    ESP_ERROR_CHECK(uart_driver_install(UART_NUM_1,
+                                        BUF_SIZE * 2,
+                                        BUF_SIZE * 2,
+                                        &uart1_queue,
+                                        intr_alloc_flags));
+    uart_param_config(UART_NUM_1, &uart_config);
+    uart_set_mode(UART_NUM_1, UART_MODE_IRDA);
+    ESP_ERROR_CHECK(uart_set_pin(EX_UART_NUM,
+                                 UART_PIN_NO_CHANGE,
+                                 UART_PIN_NO_CHANGE,
+                                 UART_PIN_NO_CHANGE,
+                                 UART_PIN_NO_CHANGE));
+}
 
 static void
 periph_init_gpio(void(*gpio_cb)(void* arg), void* gpio_cb_arg)
