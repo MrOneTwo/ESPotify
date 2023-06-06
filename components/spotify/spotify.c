@@ -83,7 +83,7 @@ void spotify_refresh_access_token(void)
 
   if (err == ESP_OK)
   {
-    ESP_LOGD(TAG, "Status = %d, content_length = %d",
+    ESP_LOGD(TAG, "Status = %d, content_length = %lld",
              esp_http_client_get_status_code(client),
              esp_http_client_get_content_length(client));
   }
@@ -110,7 +110,7 @@ void spotify_query(void)
 
   if (err == ESP_OK)
   {
-    ESP_LOGD(TAG, "Status = %d, content_length = %d",
+    ESP_LOGD(TAG, "Status = %d, content_length = %lld",
              esp_http_client_get_status_code(client),
              esp_http_client_get_content_length(client));
   }
@@ -157,7 +157,7 @@ void spotify_enqueue_song(const char* const song_id, const uint8_t song_id_len)
   }
   else
   {
-    ESP_LOGD(TAG, "Status = %d, content_length = %d",
+    ESP_LOGD(TAG, "Status = %d, content_length = %lld",
              esp_http_client_get_status_code(client),
              esp_http_client_get_content_length(client));
   }
@@ -185,7 +185,7 @@ void spotify_next_song(void)
 
   if (err == ESP_OK)
   {
-    ESP_LOGD(TAG, "Status = %d, content_length = %d",
+    ESP_LOGD(TAG, "Status = %d, content_length = %lld",
              esp_http_client_get_status_code(client),
              esp_http_client_get_content_length(client));
   }
@@ -199,7 +199,7 @@ void spotify_get_playlist(const uint32_t playlist_idx)
   const char* _url = "https://api.spotify.com/v1/me/playlists?limit=1&offset=";
   // The idea below is to use the scratch buffer for building the URL and the header.
   char* const spotify_url = scratch_mem;
-  snprintf(spotify_url, SCRATCH_MEM_SIZE, "%s%d", _url, playlist_idx);
+  snprintf(spotify_url, SCRATCH_MEM_SIZE, "%s%ld", _url, playlist_idx);
 
   char* const spotify_header = (scratch_mem + strlen(spotify_url) + 1);
   snprintf(spotify_header, SCRATCH_MEM_SIZE, "Bearer %s", spotify.access_token);
@@ -220,7 +220,7 @@ void spotify_get_playlist(const uint32_t playlist_idx)
 
   if (err == ESP_OK)
   {
-    ESP_LOGD(TAG, "Status = %d, content_length = %d",
+    ESP_LOGD(TAG, "Status = %d, content_length = %lld",
              esp_http_client_get_status_code(client),
              esp_http_client_get_content_length(client));
   }
@@ -235,7 +235,7 @@ void spotify_get_playlist_song(const char* playlist_id, const uint32_t song_idx)
   // The idea below is to use the scratch buffer for building the URL and the header.
   char* const spotify_url = scratch_mem;
   snprintf(spotify_url, SCRATCH_MEM_SIZE,
-           "%s%.*s/tracks?%s&%s%d", _url, MAX_PLAYLIST_ID_LENGTH, playlist_id, "fields=href(),items(track(name,id)),total()", "limit=1&offset=", song_idx);
+           "%s%.*s/tracks?%s&%s%ld", _url, MAX_PLAYLIST_ID_LENGTH, playlist_id, "fields=href(),items(track(name,id)),total()", "limit=1&offset=", song_idx);
 
   char* const spotify_header = (scratch_mem + strlen(spotify_url) + 1);
   snprintf(spotify_header, SCRATCH_MEM_SIZE, "Bearer %s", spotify.access_token);
@@ -253,7 +253,7 @@ void spotify_get_playlist_song(const char* playlist_id, const uint32_t song_idx)
 
   if (err == ESP_OK)
   {
-    ESP_LOGD(TAG, "Status = %d, content_length = %d",
+    ESP_LOGD(TAG, "Status = %d, content_length = %lld",
              esp_http_client_get_status_code(client),
              esp_http_client_get_content_length(client));
   }
@@ -276,6 +276,9 @@ static esp_err_t spotify_http_event_handler(esp_http_client_event_t *evt)
       break;
     case HTTP_EVENT_HEADER_SENT:
       ESP_LOGD(TAG, "HTTP_EVENT_HEADER_SENT");
+      break;
+    case HTTP_EVENT_REDIRECT:
+      ESP_LOGD(TAG, "HTTP_EVENT_REDIRECT");
       break;
     case HTTP_EVENT_ON_HEADER:
       ESP_LOGD(TAG, "HTTP_EVENT_ON_HEADER");
@@ -300,7 +303,7 @@ static esp_err_t spotify_http_event_handler(esp_http_client_event_t *evt)
       // }
       break;
     case HTTP_EVENT_ON_FINISH:
-      ESP_LOGD(TAG, "HTTP_EVENT_ON_FINISH, bytes to process %d", response_bytes_count);
+      ESP_LOGD(TAG, "HTTP_EVENT_ON_FINISH, bytes to process %lu", response_bytes_count);
 
       cJSON* response_json = NULL;
 
@@ -351,7 +354,7 @@ static esp_err_t spotify_http_event_handler(esp_http_client_event_t *evt)
           if (strstr(cJSON_GetStringValue(href), "tracks"))
           {
             cJSON* track = cJSON_GetObjectItem(item, "track");
-            ESP_LOGI(TAG, "Storing a track ID %s in slot %d",
+            ESP_LOGI(TAG, "Storing a track ID %s in slot %lu",
                           cJSON_GetStringValue(cJSON_GetObjectItem(track, "id")),
                           (songs_queue_write_counter % MAX_SONGS_IN_QUEUE));
             char* const write_to = songs_queue + (songs_queue_write_counter++ % MAX_SONGS_IN_QUEUE) * MAX_SONG_ID_LENGTH;
@@ -407,7 +410,7 @@ static esp_err_t spotify_http_event_handler(esp_http_client_event_t *evt)
       }
 
       // Print the raw response data.
-      ESP_LOGD(TAG, "\n%.*s\n", response_bytes_count, response_buf);
+      ESP_LOGD(TAG, "\n%.*s\n", (int)response_bytes_count, response_buf);
 
       cJSON* item = cJSON_GetObjectItem(response_json, "item");
       cJSON* artists = cJSON_GetObjectItem(item, "artists");
