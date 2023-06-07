@@ -6,6 +6,7 @@
 #include "driver/uart.h"
 
 #include <stdbool.h>
+#include <string.h>
 
 #define PIN_NUM_MISO 19
 #define PIN_NUM_MOSI 23
@@ -44,7 +45,7 @@ uart_event_task(void *pvParameters)
 
   while(true) {
     if (xQueueReceive(uart1_queue, (void*)&event, (TickType_t)portMAX_DELAY)) {
-      bzero(data, BUF_SIZE);
+      memset(data, 0, BUF_SIZE);
       switch(event.type) {
         case UART_DATA:
           uart_read_bytes(UART_NUM_1, data, event.size, portMAX_DELAY);
@@ -66,6 +67,7 @@ uart_event_task(void *pvParameters)
         case UART_PATTERN_DET: {
           uart_get_buffered_data_len(UART_NUM_1, &buffered_size);
           int pos = uart_pattern_pop_pos(UART_NUM_1);
+          (void)pos;
         } break;
         default:
           break;
@@ -189,11 +191,12 @@ periph_init_uart(void)
     ESP_ERROR_CHECK(uart_driver_install(UART_NUM_1,
                                         BUF_SIZE * 2,
                                         BUF_SIZE * 2,
+                                        8,
                                         &uart1_queue,
                                         intr_alloc_flags));
     uart_param_config(UART_NUM_1, &uart_config);
     uart_set_mode(UART_NUM_1, UART_MODE_IRDA);
-    ESP_ERROR_CHECK(uart_set_pin(EX_UART_NUM,
+    ESP_ERROR_CHECK(uart_set_pin(UART_NUM_1,
                                  UART_PIN_NO_CHANGE,
                                  UART_PIN_NO_CHANGE,
                                  UART_PIN_NO_CHANGE,

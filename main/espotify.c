@@ -129,6 +129,9 @@ static esp_err_t http_event_handler(esp_http_client_event_t *evt)
     case HTTP_EVENT_DISCONNECTED:
       ESP_LOGD("espotify", "HTTP_EVENT_DISCONNECTED");
       break;
+    case HTTP_EVENT_REDIRECT:
+      ESP_LOGD("espotify", "HTTP_EVENT_REDIRECT");
+      break;
   }
   return ESP_OK;
 }
@@ -140,6 +143,7 @@ static esp_err_t get_handler(httpd_req_t *req)
   char content[128];
   size_t recv_size = MIN(req->content_len, sizeof(content));
   int ret = httpd_req_recv(req, content, recv_size);
+  (void)ret;
   printf("%.*s", req->content_len, content);
 
   // Send a simple response
