@@ -10,7 +10,7 @@ idf_component_register(SRCS
                        "tasks.c"
                        "shared.c"
                        INCLUDE_DIRS "."
-                       REQUIRES esp_http_server esp_http_client nvs_flash ${EXT_DEPENDENCIES})
+                       REQUIRES esp_http_server esp_http_client nvs_flash esp_wifi ${EXT_DEPENDENCIES})
 
 
 # This doesn't work. Somehow appending to REQUIRES registers the component
