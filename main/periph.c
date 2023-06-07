@@ -40,7 +40,7 @@ uart_event_task(void *pvParameters)
 {
   uart_event_t event;
   size_t buffered_size;
-  uint8_t data = (uint8_t*)malloc(BUF_SIZE);
+  uint8_t *data = (uint8_t*)malloc(BUF_SIZE);
 
   while(true) {
     if (xQueueReceive(uart1_queue, (void*)&event, (TickType_t)portMAX_DELAY)) {
