@@ -2,6 +2,12 @@ name: build
 on:
   push:
     branches: [ master ]
+  workflow_dispatch:
+    inputs:
+      dummy:
+        description: 'Just as an example'
+        required: false
+
 jobs:
   fetch-toolchain:
     runs-on: ubuntu-latest
