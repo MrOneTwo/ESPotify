@@ -36,6 +36,9 @@ uint8_t _GPIO_IRQ_PIN[2] = {15U, 0U};
 static QueueHandle_t uart1_queue;
 spi_device_handle_t _spi;
 
+// For ESP32 the UART 2 uses pins 16 (rx) and 17 (tx).
+#define UART_PERIPH UART_NUM_2
+
 static void
 uart_event_task(void *pvParameters)
 {
@@ -48,14 +51,14 @@ uart_event_task(void *pvParameters)
       memset(data, 0, BUF_SIZE);
       switch(event.type) {
         case UART_DATA:
-          uart_read_bytes(UART_NUM_1, data, event.size, portMAX_DELAY);
+          uart_read_bytes(UART_PERIPH, data, event.size, portMAX_DELAY);
           break;
         case UART_FIFO_OVF:
-          uart_flush_input(UART_NUM_1);
+          uart_flush_input(UART_PERIPH);
           xQueueReset(uart1_queue);
           break;
         case UART_BUFFER_FULL:
-          uart_flush_input(UART_NUM_1);
+          uart_flush_input(UART_PERIPH);
           xQueueReset(uart1_queue);
           break;
         case UART_BREAK:
@@ -65,8 +68,8 @@ uart_event_task(void *pvParameters)
         case UART_FRAME_ERR:
           break;
         case UART_PATTERN_DET: {
-          uart_get_buffered_data_len(UART_NUM_1, &buffered_size);
-          int pos = uart_pattern_pop_pos(UART_NUM_1);
+          uart_get_buffered_data_len(UART_PERIPH, &buffered_size);
+          int pos = uart_pattern_pop_pos(UART_PERIPH);
           (void)pos;
         } break;
         default:
@@ -173,7 +176,7 @@ periph_init_spi(void)
 }
 #endif // CONFIG_RFID_READER
 
-void
+static void
 periph_init_uart(void)
 {
     uart_config_t uart_config = {
@@ -185,22 +188,22 @@ periph_init_uart(void)
         .source_clk = UART_SCLK_DEFAULT,
     };
 
-    uint8_t *data = (uint8_t *)malloc(1024);
     int intr_alloc_flags = 0;
-
-    ESP_ERROR_CHECK(uart_driver_install(UART_NUM_1,
+    ESP_ERROR_CHECK(uart_driver_install(UART_PERIPH,
                                         BUF_SIZE * 2,
                                         BUF_SIZE * 2,
                                         8,
                                         &uart1_queue,
                                         intr_alloc_flags));
-    uart_param_config(UART_NUM_1, &uart_config);
-    uart_set_mode(UART_NUM_1, UART_MODE_IRDA);
-    ESP_ERROR_CHECK(uart_set_pin(UART_NUM_1,
+    uart_param_config(UART_PERIPH, &uart_config);
+    uart_set_mode(UART_PERIPH, UART_MODE_IRDA);
+    ESP_ERROR_CHECK(uart_set_pin(UART_PERIPH,
                                  UART_PIN_NO_CHANGE,
                                  UART_PIN_NO_CHANGE,
                                  UART_PIN_NO_CHANGE,
                                  UART_PIN_NO_CHANGE));
+
+    xTaskCreate(uart_event_task, "uart_event_task", 2048, NULL, 12, NULL);
 }
 
 static void
@@ -232,4 +235,5 @@ void periph_init()
 #ifdef CONFIG_RFID_READER
   periph_init_spi();
 #endif // CONFIG_RFID_READER
+  periph_init_uart();
 }
