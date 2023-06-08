@@ -86,7 +86,7 @@ InsertBraces: true
 SpaceBeforeParens: ControlStatementsExceptControlMacros
 SortIncludes: Never
 UseTab: Never
-AlwaysBreakAfterReturnType: TopLevel
+AlwaysBreakAfterReturnType: TopLevelDefinitions
 WhitespaceSensitiveMacros:
   - STRINGIFY
   - Z_STRINGIFY
