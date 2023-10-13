@@ -11,10 +11,17 @@ on:
 jobs:
   fetch-toolchain:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    container:
+      image: espressif/idf:latest
     steps:
       - uses: actions/checkout@v2
-      - run: sudo apt-get install git wget flex bison gperf python3-pip python-setuptools cmake ninja-build ccache libffi-dev libssl-dev dfu-util
+      - run: apt update
+      - run: apt install -y git wget flex bison gperf python3-pip python-setuptools cmake ninja-build ccache libffi-dev libssl-dev dfu-util
       - run: git clone --recursive https://github.com/espressif/esp-idf.git $HOME/esp-idf
       - run: cd $HOME/esp-idf && ./install.sh
       # - run: source $HOME/esp-idf/export.sh && cd $GITHUB_WORKSPACE && idf.py build
       - run: source $HOME/esp-idf/export.sh && cd $GITHUB_WORKSPACE && mkdir build && cd build && cmake .. -G Ninja && ninja
+      # - run: cd $GITHUB_WORKSPACE && idf.py build
